@@ -48,6 +48,19 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
+  packages/easa:
+    dependencies:
+      '@easa/agent':
+        specifier: workspace:*
+        version: link:../agent
+    devDependencies:
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(postcss@8.5.8)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
 packages:
 
   '@babel/runtime@7.28.6':

@@ -1,0 +1,10 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@easa/agent": "0.0.1"
+  },
+  "changesets": [
+    "odd-facts-sleep"
+  ]
+}

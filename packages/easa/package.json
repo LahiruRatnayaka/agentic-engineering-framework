@@ -1,20 +1,14 @@
 {
-  "name": "@easa/agent",
+  "name": "easa",
   "version": "0.1.0-alpha.0",
-  "description": "Core agent primitives and runtime for EASA — Easy Agent System Architecture.",
-  "keywords": [
-    "agent",
-    "ai",
-    "framework",
-    "typescript",
-    "llm"
-  ],
+  "description": "EASA — Easy Agent System Architecture: A Minimal TypeScript Framework for Agent Systems.",
+  "keywords": ["agent", "ai", "framework", "typescript", "llm", "easa"],
   "license": "MIT",
   "author": "EASA Contributors",
   "repository": {
     "type": "git",
     "url": "https://github.com/easa-framework/easa.git",
-    "directory": "packages/agent"
+    "directory": "packages/easa"
   },
   "type": "module",
   "main": "./dist/index.cjs",
@@ -46,6 +40,9 @@
     "dev": "tsup --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@easa/agent": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
