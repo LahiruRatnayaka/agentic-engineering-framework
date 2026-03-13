@@ -1,5 +1,5 @@
 ---
-"@easa/agent": minor
+"@lahiruratnayaka/agent": minor
 ---
 
-feat: initial alpha release of @easa/agent with core Agent class
+feat: initial alpha release of @lahiruratnayaka/agent with core Agent class

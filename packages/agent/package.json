@@ -1,5 +1,5 @@
 {
-  "name": "@easa/agent",
+  "name": "@lahiruratnayaka/agent",
   "version": "0.1.0-alpha.0",
   "description": "Core agent primitives and runtime for EASA — Easy Agent System Architecture.",
   "keywords": [

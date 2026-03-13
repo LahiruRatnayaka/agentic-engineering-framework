@@ -1,4 +1,4 @@
-# easa
+# @lahiruratnayaka/easa
 
 > EASA — Easy Agent System Architecture: A Minimal TypeScript Framework for Agent Systems.
 
@@ -7,15 +7,15 @@ This is the umbrella package that re-exports core primitives from all EASA packa
 ## Installation
 
 ```bash
-npm install easa
+npm install @lahiruratnayaka/easa
 # or
-pnpm add easa
+pnpm add @lahiruratnayaka/easa
 ```
 
 ## Usage
 
 ```typescript
-import { Agent } from 'easa';
+import { Agent } from '@lahiruratnayaka/easa';
 
 const agent = new Agent({
   name: 'my-agent',
@@ -29,9 +29,9 @@ For finer control, import directly from individual packages:
 
 | Package | Import |
 | --- | --- |
-| [`@easa/agent`](../agent) | `import { Agent } from "@easa/agent"` |
+| [`@lahiruratnayaka/agent`](../agent) | `import { Agent } from "@lahiruratnayaka/agent"` |
 
-More packages coming soon: `@easa/providers`, `@easa/tools`, `@easa/memory`, `@easa/mcp`, `@easa/telemetry`.
+More packages coming soon: `@lahiruratnayaka/providers`, `@lahiruratnayaka/tools`, `@lahiruratnayaka/memory`, `@lahiruratnayaka/mcp`, `@lahiruratnayaka/telemetry`.
 
 ## License
 

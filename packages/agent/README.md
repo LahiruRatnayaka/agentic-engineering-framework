@@ -1,19 +1,19 @@
-# @easa/agent
+# @lahiruratnayaka/agent
 
 > Core agent primitives and runtime for EASA — Easy Agent System Architecture.
 
 ## Installation
 
 ```bash
-npm install @easa/agent
+npm install @lahiruratnayaka/agent
 # or
-pnpm add @easa/agent
+pnpm add @lahiruratnayaka/agent
 ```
 
 ## Usage
 
 ```typescript
-import { Agent } from '@easa/agent';
+import { Agent } from '@lahiruratnayaka/agent';
 
 const agent = new Agent({
   name: 'my-agent',

@@ -1,5 +1,5 @@
 {
-  "name": "easa",
+  "name": "@lahiruratnayaka/easa",
   "version": "0.1.0-alpha.0",
   "description": "EASA — Easy Agent System Architecture: A Minimal TypeScript Framework for Agent Systems.",
   "keywords": ["agent", "ai", "framework", "typescript", "llm", "easa"],
@@ -42,7 +42,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@easa/agent": "workspace:*"
+    "@lahiruratnayaka/agent": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
