@@ -1,5 +1,5 @@
 ---
-"@lahiruratnayaka/agent": minor
+"@agentic-eng/agent": minor
 ---
 
-feat: initial alpha release of @lahiruratnayaka/agent with core Agent class
+feat: initial alpha release of @agentic-eng/agent with core Agent class

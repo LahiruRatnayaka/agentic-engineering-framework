@@ -1,4 +1,4 @@
-# @lahiruratnayaka/agent
+# @agentic-eng/agent
 
 ## 0.1.0-alpha.0
 

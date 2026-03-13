@@ -2,7 +2,7 @@
   "mode": "pre",
   "tag": "alpha",
   "initialVersions": {
-    "@lahiruratnayaka/agent": "0.0.1"
+    "@agentic-eng/agent": "0.0.1"
   },
   "changesets": [
     "odd-facts-sleep"

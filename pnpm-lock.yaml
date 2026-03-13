@@ -50,7 +50,7 @@ importers:
 
   packages/easa:
     dependencies:
-      '@lahiruratnayaka/agent':
+      '@agentic-eng/agent':
         specifier: workspace:*
         version: link:../agent
     devDependencies:

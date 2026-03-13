@@ -13,18 +13,18 @@ EASA provides a lightweight, composable foundation for building agent-based syst
 
 | Package | Description | Version |
 | --- | --- | --- |
-| [`@lahiruratnayaka/agent`](./packages/agent) | Core agent primitives and runtime | [![npm](https://img.shields.io/npm/v/@lahiruratnayaka/agent)](https://www.npmjs.com/package/@lahiruratnayaka/agent) |
+| [`@agentic-eng/agent`](./packages/agent) | Core agent primitives and runtime | [![npm](https://img.shields.io/npm/v/@agentic-eng/agent)](https://www.npmjs.com/package/@agentic-eng/agent) |
 
 ## Quick Start
 
 ```bash
-npm install @lahiruratnayaka/agent
+npm install @agentic-eng/agent
 # or
-pnpm add @lahiruratnayaka/agent
+pnpm add @agentic-eng/agent
 ```
 
 ```typescript
-import { Agent } from '@lahiruratnayaka/agent';
+import { Agent } from '@agentic-eng/agent';
 
 const agent = new Agent({ name: 'my-agent' });
 ```
@@ -60,8 +60,8 @@ pnpm format
 ```
 easa/
 ├── packages/
-│   ├── agent/          # @lahiruratnayaka/agent — core agent primitives
-│   └── easa/           # @lahiruratnayaka/easa — umbrella package
+│   ├── agent/          # @agentic-eng/agent — core agent primitives
+│   └── easa/           # @agentic-eng/easa — umbrella package
 ├── package.json        # Root workspace config
 ├── tsconfig.json       # Shared TypeScript config
 └── pnpm-workspace.yaml
