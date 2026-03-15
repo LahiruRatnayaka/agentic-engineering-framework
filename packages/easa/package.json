@@ -1,8 +1,15 @@
 {
   "name": "@agentic-eng/easa",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-beta.1",
   "description": "EASA — Easy Agent System Architecture: A Minimal TypeScript Framework for Agent Systems.",
-  "keywords": ["agent", "ai", "framework", "typescript", "llm", "easa"],
+  "keywords": [
+    "agent",
+    "ai",
+    "framework",
+    "typescript",
+    "llm",
+    "easa"
+  ],
   "license": "MIT",
   "author": "EASA Contributors",
   "repository": {

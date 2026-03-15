@@ -1,4 +1,4 @@
-# @agentic-eng/agent
+# @agentic-eng/easa
 
 ## 0.1.0-beta.1
 
@@ -15,8 +15,7 @@
   - Streaming support via invokeStream
   - ESM + CJS dual output with full TypeScript declarations
 
-## 0.1.0-alpha.0
+### Patch Changes
 
-### Minor Changes
-
-- feat: initial alpha release of @easa/agent with core Agent class
+- Updated dependencies
+  - @agentic-eng/agent@0.1.0-beta.1
