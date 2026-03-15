@@ -6,5 +6,15 @@
  */
 
 // Core
-export { Agent } from '@agentic-eng/agent';
-export type { AgentConfig } from '@agentic-eng/agent';
+export { Agent, EasaError, ProviderError, AgentConfigError } from '@agentic-eng/agent';
+export type {
+  AgentConfig,
+  InvokeResult,
+  LLMProvider,
+  Role,
+  Message,
+  ChatOptions,
+  ChatResponse,
+  ChatChunk,
+  TokenUsage,
+} from '@agentic-eng/agent';
