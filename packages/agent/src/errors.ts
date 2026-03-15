@@ -59,3 +59,17 @@ export class ReasoningParseError extends EasaError {
     this.name = 'ReasoningParseError';
   }
 }
+
+/**
+ * Thrown when a tool execution fails.
+ */
+export class ToolExecutionError extends EasaError {
+  constructor(
+    public readonly toolName: string,
+    message: string,
+    public readonly cause?: unknown,
+  ) {
+    super(`Tool "${toolName}" failed: ${message}`);
+    this.name = 'ToolExecutionError';
+  }
+}

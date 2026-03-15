@@ -66,16 +66,17 @@ export interface ChatChunk {
 /**
  * The action the LLM chooses at each reasoning step.
  * - `done` — the agent has a final answer.
- * - `continue` — the agent needs another iteration (e.g. more thinking, tool use later).
+ * - `continue` — the agent needs another iteration (e.g. more thinking).
+ * - `tool_call` — the agent wants to invoke a tool.
  */
-export type ReasoningAction = 'done' | 'continue';
+export type ReasoningAction = 'done' | 'continue' | 'tool_call';
 
 /**
  * Structured JSON the LLM must return at every reasoning step.
  * The agent's system prompt instructs the LLM to always respond in this shape.
  */
 export interface LLMReasoningResponse {
-  /** Whether the agent is done or needs to continue reasoning. */
+  /** Whether the agent is done, needs to continue, or wants to call a tool. */
   action: ReasoningAction;
 
   /** The agent's internal reasoning / chain-of-thought for this step. */
@@ -84,8 +85,73 @@ export interface LLMReasoningResponse {
   /** The content to surface — final answer when `done`, intermediate output when `continue`. */
   content: string;
 
+  /** Required when action is `tool_call`: specifies which tool and with what input. */
+  tool_call?: ToolCallRequest;
+
   /** Optional: whether the agent wants to persist something to memory. */
   memory?: MemoryEntry;
+}
+
+// ---------------------------------------------------------------------------
+// Tool Types
+// ---------------------------------------------------------------------------
+
+/**
+ * JSON Schema definition for a tool's input parameters.
+ */
+export interface ToolInputSchema {
+  type: 'object';
+  properties: Record<string, {
+    type: string;
+    description?: string;
+    enum?: string[];
+    items?: Record<string, unknown>;
+    [key: string]: unknown;
+  }>;
+  required?: string[];
+}
+
+/**
+ * Definition of a tool that can be used by the agent.
+ * Both custom tools and MCP-sourced tools are normalized to this shape.
+ */
+export interface ToolDefinition {
+  /** Unique name for this tool (e.g. "calculator", "web_search"). */
+  name: string;
+
+  /** Short description of what the tool does. */
+  description: string;
+
+  /** JSON Schema describing the tool's input parameters. */
+  inputSchema: ToolInputSchema;
+}
+
+/**
+ * A request from the LLM to invoke a specific tool.
+ */
+export interface ToolCallRequest {
+  /** The name of the tool to invoke. */
+  name: string;
+
+  /** The input arguments to pass to the tool (matching its inputSchema). */
+  input: Record<string, unknown>;
+}
+
+/**
+ * The result of executing a tool.
+ */
+export interface ToolResult {
+  /** The name of the tool that was executed. */
+  toolName: string;
+
+  /** Whether the tool execution succeeded. */
+  success: boolean;
+
+  /** The output from the tool (serialized to string for the LLM). */
+  output: string;
+
+  /** Error message if the tool failed. */
+  error?: string;
 }
 
 /**

@@ -5,6 +5,8 @@ import type { AgentConfig } from './agent';
 import { AgentConfigError, MaxIterationsError, ProviderError, ReasoningParseError } from './errors';
 import type { MemoryProvider } from './memory';
 import type { LLMProvider } from './provider';
+import type { Tool } from './tool';
+import { ToolRegistry } from './tool';
 import type { ChatChunk, ChatResponse, LLMReasoningResponse, Message } from './types';
 
 // ---------------------------------------------------------------------------
@@ -427,5 +429,409 @@ describe('Agent', () => {
       agent.clearHistory();
       expect(agent.getMessages()).toHaveLength(0);
     });
+  });
+
+  describe('invoke — tool integration', () => {
+    function createCalculatorTool(): Tool {
+      return {
+        definition: {
+          name: 'calculator',
+          description: 'Performs basic arithmetic operations.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              expression: { type: 'string', description: 'Math expression to evaluate' },
+            },
+            required: ['expression'],
+          },
+        },
+        execute: vi.fn(async (input) => ({
+          toolName: 'calculator',
+          success: true,
+          output: String(eval(input['expression'] as string)),
+        })),
+      };
+    }
+
+    function createWeatherTool(): Tool {
+      return {
+        definition: {
+          name: 'weather',
+          description: 'Gets current weather for a city.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              city: { type: 'string', description: 'City name' },
+            },
+            required: ['city'],
+          },
+        },
+        execute: vi.fn(async (input) => ({
+          toolName: 'weather',
+          success: true,
+          output: `Weather in ${input['city']}: 25°C, sunny`,
+        })),
+      };
+    }
+
+    it('should include compact tool index in system prompt when tools are registered', async () => {
+      const tools = new ToolRegistry();
+      tools.register(createCalculatorTool(), createWeatherTool());
+
+      const provider = createMockProvider();
+      const agent = new Agent(createAgentConfig({ provider, tools }));
+
+      await agent.invoke('Hello');
+
+      const callArgs = vi.mocked(provider.chat).mock.calls[0]!;
+      const systemPrompt = callArgs[0][0]!.content;
+      expect(systemPrompt).toContain('calculator: Performs basic arithmetic');
+      expect(systemPrompt).toContain('weather: Gets current weather');
+      expect(systemPrompt).toContain('tool_call');
+    });
+
+    it('should not include tool_call in system prompt when no tools registered', async () => {
+      const provider = createMockProvider();
+      const agent = new Agent(createAgentConfig({ provider }));
+
+      await agent.invoke('Hello');
+
+      const callArgs = vi.mocked(provider.chat).mock.calls[0]!;
+      const systemPrompt = callArgs[0][0]!.content;
+      expect(systemPrompt).not.toContain('tool_call');
+    });
+
+    it('should execute a tool when LLM returns action=tool_call with input', async () => {
+      const calculator = createCalculatorTool();
+      const tools = new ToolRegistry();
+      tools.register(calculator);
+
+      let callCount = 0;
+      const provider = createMockProvider({
+        chat: vi.fn(async (): Promise<ChatResponse> => {
+          callCount++;
+          if (callCount === 1) {
+            return {
+              message: {
+                role: 'assistant',
+                content: reasoningJson({
+                  action: 'tool_call',
+                  reasoning: 'Need to calculate 42 * 17.',
+                  content: 'Let me calculate that.',
+                  tool_call: { name: 'calculator', input: { expression: '42 * 17' } },
+                }),
+              },
+            };
+          }
+          return {
+            message: {
+              role: 'assistant',
+              content: reasoningJson({
+                action: 'done',
+                content: '42 × 17 = 714',
+              }),
+            },
+          };
+        }),
+      });
+
+      const agent = new Agent(createAgentConfig({ provider, tools }));
+      const result = await agent.invoke('What is 42 * 17?');
+
+      expect(calculator.execute).toHaveBeenCalledOnce();
+      expect(calculator.execute).toHaveBeenCalledWith({ expression: '42 * 17' });
+      expect(result.content).toBe('42 × 17 = 714');
+      expect(result.trace.totalIterations).toBe(2);
+    });
+
+    it('should inject full schema when LLM requests tool with empty input', async () => {
+      const calculator = createCalculatorTool();
+      const tools = new ToolRegistry();
+      tools.register(calculator);
+
+      let callCount = 0;
+      const provider = createMockProvider({
+        chat: vi.fn(async (messages: Message[]): Promise<ChatResponse> => {
+          callCount++;
+          if (callCount === 1) {
+            // LLM requests calculator but with empty input
+            return {
+              message: {
+                role: 'assistant',
+                content: reasoningJson({
+                  action: 'tool_call',
+                  reasoning: 'Need calculator.',
+                  content: 'Using calculator.',
+                  tool_call: { name: 'calculator', input: {} },
+                }),
+              },
+            };
+          }
+          if (callCount === 2) {
+            // Should have received full schema — check that it appears somewhere in messages
+            const schemaMsg = messages.find((m) => m.content.includes('inputSchema'));
+            expect(schemaMsg).toBeDefined();
+            expect(schemaMsg!.content).toContain('calculator');
+            return {
+              message: {
+                role: 'assistant',
+                content: reasoningJson({
+                  action: 'tool_call',
+                  reasoning: 'Now I have the schema.',
+                  content: 'Calculating.',
+                  tool_call: { name: 'calculator', input: { expression: '2 + 2' } },
+                }),
+              },
+            };
+          }
+          return {
+            message: {
+              role: 'assistant',
+              content: reasoningJson({ action: 'done', content: '2 + 2 = 4' }),
+            },
+          };
+        }),
+      });
+
+      const agent = new Agent(createAgentConfig({ provider, tools, maxIterations: 5 }));
+      const result = await agent.invoke('What is 2+2?');
+
+      expect(result.content).toBe('2 + 2 = 4');
+      expect(calculator.execute).toHaveBeenCalledOnce();
+    });
+
+    it('should handle tool not found gracefully', async () => {
+      const tools = new ToolRegistry();
+      tools.register(createCalculatorTool());
+
+      let callCount = 0;
+      const provider = createMockProvider({
+        chat: vi.fn(async (): Promise<ChatResponse> => {
+          callCount++;
+          if (callCount === 1) {
+            return {
+              message: {
+                role: 'assistant',
+                content: reasoningJson({
+                  action: 'tool_call',
+                  reasoning: 'Need web search.',
+                  content: 'Searching...',
+                  tool_call: { name: 'web_search', input: { query: 'hello' } },
+                }),
+              },
+            };
+          }
+          return {
+            message: {
+              role: 'assistant',
+              content: reasoningJson({
+                action: 'done',
+                content: 'I could not search the web, but here is my best answer.',
+              }),
+            },
+          };
+        }),
+      });
+
+      const agent = new Agent(createAgentConfig({ provider, tools }));
+      const result = await agent.invoke('Search for hello');
+
+      expect(result.content).toBe('I could not search the web, but here is my best answer.');
+    });
+
+    it('should handle tool execution errors gracefully', async () => {
+      const failingTool: Tool = {
+        definition: {
+          name: 'failing_tool',
+          description: 'A tool that always fails.',
+          inputSchema: { type: 'object', properties: {} },
+        },
+        execute: vi.fn(async () => {
+          throw new Error('Tool crashed!');
+        }),
+      };
+
+      const tools = new ToolRegistry();
+      tools.register(failingTool);
+
+      let callCount = 0;
+      const provider = createMockProvider({
+        chat: vi.fn(async (): Promise<ChatResponse> => {
+          callCount++;
+          if (callCount === 1) {
+            return {
+              message: {
+                role: 'assistant',
+                content: reasoningJson({
+                  action: 'tool_call',
+                  reasoning: 'Using failing tool.',
+                  content: 'Running tool.',
+                  tool_call: { name: 'failing_tool', input: { any: 'thing' } },
+                }),
+              },
+            };
+          }
+          return {
+            message: {
+              role: 'assistant',
+              content: reasoningJson({
+                action: 'done',
+                content: 'The tool failed, but I can still answer.',
+              }),
+            },
+          };
+        }),
+      });
+
+      const agent = new Agent(createAgentConfig({ provider, tools }));
+      const result = await agent.invoke('Use the tool');
+
+      expect(failingTool.execute).toHaveBeenCalledOnce();
+      expect(result.content).toBe('The tool failed, but I can still answer.');
+
+      // Verify the error was fed back to the LLM
+      const secondCallMessages = vi.mocked(provider.chat).mock.calls[1]![0];
+      const toolResultMsg = secondCallMessages.find((m) => m.content.includes('Tool crashed'));
+      expect(toolResultMsg).toBeDefined();
+    });
+
+    it('should feed tool result back to LLM as context', async () => {
+      const weather = createWeatherTool();
+      const tools = new ToolRegistry();
+      tools.register(weather);
+
+      let callCount = 0;
+      const provider = createMockProvider({
+        chat: vi.fn(async (): Promise<ChatResponse> => {
+          callCount++;
+          if (callCount === 1) {
+            return {
+              message: {
+                role: 'assistant',
+                content: reasoningJson({
+                  action: 'tool_call',
+                  reasoning: 'Need weather data.',
+                  content: 'Checking weather.',
+                  tool_call: { name: 'weather', input: { city: 'Bangkok' } },
+                }),
+              },
+            };
+          }
+          return {
+            message: {
+              role: 'assistant',
+              content: reasoningJson({
+                action: 'done',
+                content: 'Bangkok is 25°C and sunny!',
+              }),
+            },
+          };
+        }),
+      });
+
+      const agent = new Agent(createAgentConfig({ provider, tools }));
+      const result = await agent.invoke('What is the weather in Bangkok?');
+
+      expect(result.content).toBe('Bangkok is 25°C and sunny!');
+
+      // Verify tool result was passed to LLM
+      const secondCallMessages = vi.mocked(provider.chat).mock.calls[1]![0];
+      const toolResultMsg = secondCallMessages.find((m) =>
+        m.content.includes('Weather in Bangkok'),
+      );
+      expect(toolResultMsg).toBeDefined();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ToolRegistry unit tests
+// ---------------------------------------------------------------------------
+
+describe('ToolRegistry', () => {
+  function makeTool(name: string, desc: string): Tool {
+    return {
+      definition: {
+        name,
+        description: desc,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            arg: { type: 'string', description: 'An argument' },
+          },
+          required: ['arg'],
+        },
+      },
+      execute: vi.fn(async () => ({
+        toolName: name,
+        success: true,
+        output: 'ok',
+      })),
+    };
+  }
+
+  it('should register and retrieve tools', () => {
+    const registry = new ToolRegistry();
+    const tool = makeTool('test', 'A test tool');
+    registry.register(tool);
+
+    expect(registry.has('test')).toBe(true);
+    expect(registry.get('test')).toBe(tool);
+    expect(registry.size).toBe(1);
+  });
+
+  it('should return undefined for unregistered tools', () => {
+    const registry = new ToolRegistry();
+    expect(registry.get('nonexistent')).toBeUndefined();
+    expect(registry.has('nonexistent')).toBe(false);
+  });
+
+  it('should register multiple tools at once', () => {
+    const registry = new ToolRegistry();
+    registry.register(makeTool('a', 'Tool A'), makeTool('b', 'Tool B'));
+    expect(registry.size).toBe(2);
+  });
+
+  it('should return all definitions', () => {
+    const registry = new ToolRegistry();
+    registry.register(makeTool('a', 'Tool A'), makeTool('b', 'Tool B'));
+
+    const defs = registry.getDefinitions();
+    expect(defs).toHaveLength(2);
+    expect(defs.map((d) => d.name).sort()).toEqual(['a', 'b']);
+  });
+
+  it('should return compact index', () => {
+    const registry = new ToolRegistry();
+    registry.register(makeTool('calc', 'Calculator'), makeTool('search', 'Web search'));
+
+    const index = registry.getCompactIndex();
+    expect(index).toContain('- calc: Calculator');
+    expect(index).toContain('- search: Web search');
+  });
+
+  it('should return empty string for compact index with no tools', () => {
+    const registry = new ToolRegistry();
+    expect(registry.getCompactIndex()).toBe('');
+  });
+
+  it('should return full schema as JSON string', () => {
+    const registry = new ToolRegistry();
+    const tool = makeTool('test', 'A test');
+    registry.register(tool);
+
+    const schema = registry.getFullSchema('test');
+    expect(schema).toBeDefined();
+
+    const parsed = JSON.parse(schema!);
+    expect(parsed.name).toBe('test');
+    expect(parsed.description).toBe('A test');
+    expect(parsed.inputSchema).toBeDefined();
+    expect(parsed.inputSchema.properties.arg).toBeDefined();
+  });
+
+  it('should return undefined for full schema of unregistered tool', () => {
+    const registry = new ToolRegistry();
+    expect(registry.getFullSchema('nonexistent')).toBeUndefined();
   });
 });

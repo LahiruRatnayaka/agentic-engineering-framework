@@ -6,6 +6,9 @@ export type { LLMProvider } from './provider';
 export type { MemoryProvider } from './memory';
 export { FlatFileMemoryProvider } from './memory';
 
+export type { Tool } from './tool';
+export { ToolRegistry } from './tool';
+
 export type {
   Role,
   Message,
@@ -19,6 +22,10 @@ export type {
   IterationResult,
   ReasoningTrace,
   InvokeOptions,
+  ToolInputSchema,
+  ToolDefinition,
+  ToolCallRequest,
+  ToolResult,
 } from './types';
 
 export {
@@ -27,4 +34,5 @@ export {
   AgentConfigError,
   MaxIterationsError,
   ReasoningParseError,
+  ToolExecutionError,
 } from './errors';

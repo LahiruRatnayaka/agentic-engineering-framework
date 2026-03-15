@@ -6,6 +6,7 @@ import {
 } from './errors';
 import type { MemoryProvider } from './memory';
 import type { LLMProvider } from './provider';
+import type { Tool, ToolRegistry } from './tool';
 import type {
   ChatChunk,
   ChatOptions,
@@ -15,6 +16,8 @@ import type {
   LLMReasoningResponse,
   Message,
   ReasoningTrace,
+  ToolCallRequest,
+  ToolResult,
 } from './types';
 
 // ---------------------------------------------------------------------------
@@ -24,23 +27,47 @@ import type {
 const DEFAULT_MAX_ITERATIONS = 5;
 
 /**
- * The system-level prompt fragment that instructs the LLM to respond in
- * structured JSON for the reasoning loop.
+ * Builds the reasoning system prompt, including the compact tool index
+ * if tools are available.
  */
-const REASONING_SYSTEM_PROMPT = `You are an AI agent. You MUST respond with valid JSON in the following format and nothing else:
+function buildReasoningSystemPrompt(toolIndex: string): string {
+  const toolSection = toolIndex
+    ? `
+
+You have access to the following tools:
+${toolIndex}
+
+When you need to use a tool, set action to "tool_call" and provide the tool_call field.
+When you set action to "tool_call", the system will inject the tool's full input schema
+so you can construct the input accurately in the next step.`
+    : '';
+
+  const toolCallFormat = toolIndex
+    ? `,
+  "tool_call": null | { "name": "<tool_name>", "input": { ... } }`
+    : '';
+
+  const toolRules = toolIndex
+    ? `
+- If you need to use a tool, set action to "tool_call" and specify the tool name and input in tool_call.
+- After a tool executes, you will receive its result and can continue reasoning.`
+    : '';
+
+  return `You are an AI agent. You MUST respond with valid JSON in the following format and nothing else:
 
 {
-  "action": "done" | "continue",
+  "action": "done" | "continue"${toolIndex ? ' | "tool_call"' : ''},
   "reasoning": "<your internal chain-of-thought for this step>",
-  "content": "<the output for the user (final answer when done, intermediate when continue)>",
+  "content": "<the output for the user (final answer when done, intermediate when continue)>"${toolCallFormat},
   "memory": null | { "label": "<short title>", "content": "<knowledge to remember>", "tags": ["optional", "tags"] }
-}
+}${toolSection}
 
 Rules:
 - If you can answer directly, set action to "done" and provide the final answer in content.
-- If you need more thinking, research, or steps, set action to "continue" and explain in reasoning what you still need.
+- If you need more thinking, research, or steps, set action to "continue" and explain in reasoning what you still need.${toolRules}
 - Only set memory when you discover knowledge worth persisting for future conversations.
 - Always respond with valid JSON. No markdown, no code fences, no extra text.`;
+}
 
 // ---------------------------------------------------------------------------
 // Config & Result types
@@ -67,6 +94,9 @@ export interface AgentConfig {
 
   /** Optional memory provider for persisting knowledge across invocations. */
   memory?: MemoryProvider;
+
+  /** Optional tool registry containing tools the agent can use. */
+  tools?: ToolRegistry;
 }
 
 /**
@@ -87,27 +117,26 @@ export interface InvokeResult {
  * toward a goal. Simple prompts resolve in one step; complex tasks may
  * take multiple iterations with the LLM deciding when it's done.
  *
+ * Tools are supported via the hybrid approach:
+ * - **Every call**: compact tool index (name + description only) is sent
+ * - **On tool_call**: full schema for the requested tool is injected so the
+ *   LLM can construct accurate inputs
+ * - **After execution**: tool result is fed back as context for the next iteration
+ *
  * @example
  * ```typescript
+ * const tools = new ToolRegistry();
+ * tools.register(calculatorTool, webSearchTool);
+ *
  * const agent = new Agent({
  *   name: 'assistant',
  *   provider: myLLMProvider,
- *   systemPrompt: 'You are a helpful travel planner.',
+ *   systemPrompt: 'You are a helpful assistant.',
+ *   tools,
  * });
  *
- * // Simple — resolves in 1 iteration
- * const result = await agent.invoke('Hello!');
+ * const result = await agent.invoke('What is 42 * 17?');
  * console.log(result.content);
- *
- * // Complex — may take multiple iterations
- * const plan = await agent.invoke('Plan my trip to Thailand for 10 days');
- * console.log(plan.content);
- * console.log(`Completed in ${plan.trace.totalIterations} iterations`);
- *
- * // Streaming
- * for await (const chunk of agent.invokeStream('Tell me a story.')) {
- *   process.stdout.write(chunk.delta);
- * }
  * ```
  */
 export class Agent {
@@ -119,6 +148,7 @@ export class Agent {
   private readonly defaultOptions?: ChatOptions;
   private readonly maxIterations: number;
   private readonly memory?: MemoryProvider;
+  private readonly tools?: ToolRegistry;
   private messages: Message[] = [];
 
   constructor(config: AgentConfig) {
@@ -137,21 +167,29 @@ export class Agent {
     this.defaultOptions = config.defaultOptions;
     this.maxIterations = config.maxIterations ?? DEFAULT_MAX_ITERATIONS;
     this.memory = config.memory;
+    this.tools = config.tools;
   }
 
   /**
    * Send a prompt to the agent and run the reasoning loop until the agent
    * produces a final answer or exhausts max iterations.
+   *
+   * The loop handles three actions:
+   * - `done` → return final answer
+   * - `continue` → feed intermediate output back, next iteration
+   * - `tool_call` → inject full tool schema, LLM constructs input, execute tool, feed result back
    */
   async invoke(prompt: string, options?: InvokeOptions): Promise<InvokeResult> {
     this.messages.push({ role: 'user', content: prompt });
 
     const maxIter = options?.maxIterations ?? this.maxIterations;
     const iterations: IterationResult[] = [];
+    let pendingToolSchema: string | undefined;
 
     for (let i = 1; i <= maxIter; i++) {
-      const messagesToSend = this.buildMessages();
+      const messagesToSend = this.buildMessages(pendingToolSchema);
       const mergedOptions = this.mergeOptions(options);
+      pendingToolSchema = undefined;
 
       let rawResponse: ChatResponse;
       try {
@@ -184,6 +222,44 @@ export class Agent {
         };
       }
 
+      if (parsed.action === 'tool_call' && parsed.tool_call) {
+        const toolCall = parsed.tool_call;
+
+        // Check if tool exists
+        if (!this.tools || !this.tools.has(toolCall.name)) {
+          // Tool not found — tell the LLM and let it recover
+          this.messages.push({ role: 'assistant', content: rawResponse.message.content });
+          this.messages.push({
+            role: 'user',
+            content: `Tool "${toolCall.name}" is not available. Available tools: ${this.tools?.getCompactIndex() ?? 'none'}. Please choose a different approach.`,
+          });
+          continue;
+        }
+
+        // If the LLM provided input, execute the tool directly
+        if (toolCall.input && Object.keys(toolCall.input).length > 0) {
+          const toolResult = await this.executeTool(toolCall);
+
+          this.messages.push({ role: 'assistant', content: rawResponse.message.content });
+          this.messages.push({
+            role: 'user',
+            content: `Tool "${toolCall.name}" result:\n${JSON.stringify(toolResult, null, 2)}`,
+          });
+          continue;
+        }
+
+        // LLM requested a tool but didn't provide input — inject full schema
+        // so the next iteration can construct the input accurately
+        const schema = this.tools.getFullSchema(toolCall.name);
+        pendingToolSchema = schema;
+        this.messages.push({ role: 'assistant', content: rawResponse.message.content });
+        this.messages.push({
+          role: 'user',
+          content: `Here is the full schema for tool "${toolCall.name}":\n${schema}\n\nPlease provide the tool_call with the correct input.`,
+        });
+        continue;
+      }
+
       // Continue — feed the intermediate output back as context for next iteration
       this.messages.push({ role: 'assistant', content: rawResponse.message.content });
       this.messages.push({
@@ -192,10 +268,9 @@ export class Agent {
       });
     }
 
-    // Exhausted iterations — return the last content with completed: false
+    // Exhausted iterations
     const lastIteration = iterations[iterations.length - 1];
     const lastContent = lastIteration?.response.content ?? 'Unable to complete the task.';
-
     this.messages.push({ role: 'assistant', content: lastContent });
 
     throw new MaxIterationsError(maxIter, iterations.length);
@@ -244,6 +319,26 @@ export class Agent {
   }
 
   /**
+   * Executes a tool and returns the result. Catches errors gracefully
+   * so the agent can recover.
+   */
+  private async executeTool(toolCall: ToolCallRequest): Promise<ToolResult> {
+    const tool = this.tools!.get(toolCall.name) as Tool;
+
+    try {
+      return await tool.execute(toolCall.input);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        toolName: toolCall.name,
+        success: false,
+        output: '',
+        error: message,
+      };
+    }
+  }
+
+  /**
    * Parses the LLM's raw text response into a structured `LLMReasoningResponse`.
    * Attempts to extract JSON from the response, handling common LLM quirks
    * like wrapping in code fences.
@@ -278,18 +373,41 @@ export class Agent {
 
     const obj = parsed as Record<string, unknown>;
 
-    if (obj['action'] !== 'done' && obj['action'] !== 'continue') {
+    if (
+      obj['action'] !== 'done' &&
+      obj['action'] !== 'continue' &&
+      obj['action'] !== 'tool_call'
+    ) {
       throw new ReasoningParseError(
-        `Invalid action "${String(obj['action'])}". Must be "done" or "continue".`,
+        `Invalid action "${String(obj['action'])}". Must be "done", "continue", or "tool_call".`,
         raw,
       );
     }
 
     return {
-      action: obj['action'] as 'done' | 'continue',
+      action: obj['action'] as 'done' | 'continue' | 'tool_call',
       reasoning: typeof obj['reasoning'] === 'string' ? obj['reasoning'] : '',
       content: typeof obj['content'] === 'string' ? obj['content'] : '',
+      tool_call: this.parseToolCall(obj['tool_call']),
       memory: this.parseMemoryEntry(obj['memory']),
+    };
+  }
+
+  /**
+   * Parses a tool_call field from the LLM response.
+   */
+  private parseToolCall(raw: unknown): ToolCallRequest | undefined {
+    if (!raw || typeof raw !== 'object') return undefined;
+
+    const obj = raw as Record<string, unknown>;
+    if (typeof obj['name'] !== 'string') return undefined;
+
+    return {
+      name: obj['name'],
+      input:
+        typeof obj['input'] === 'object' && obj['input'] !== null
+          ? (obj['input'] as Record<string, unknown>)
+          : {},
     };
   }
 
@@ -314,14 +432,16 @@ export class Agent {
   }
 
   /**
-   * Builds the full message array to send to the provider,
-   * prepending the system prompt if configured.
+   * Builds the full message array to send to the provider.
+   * Includes: reasoning system prompt (with compact tool index) → custom system prompt → conversation.
+   * Optionally appends the full schema for a pending tool call.
    */
-  private buildMessages(): Message[] {
+  private buildMessages(pendingToolSchema?: string): Message[] {
     const messages: Message[] = [];
 
-    // Reasoning framework prompt always comes first
-    messages.push({ role: 'system', content: REASONING_SYSTEM_PROMPT });
+    // Reasoning framework prompt (includes compact tool index if tools are registered)
+    const toolIndex = this.tools?.getCompactIndex() ?? '';
+    messages.push({ role: 'system', content: buildReasoningSystemPrompt(toolIndex) });
 
     // Then the user's custom system prompt
     if (this.systemPrompt) {
@@ -329,6 +449,15 @@ export class Agent {
     }
 
     messages.push(...this.messages);
+
+    // If a tool was requested but needs full schema, append it
+    if (pendingToolSchema) {
+      messages.push({
+        role: 'system',
+        content: `Full tool schema for your tool_call:\n${pendingToolSchema}`,
+      });
+    }
+
     return messages;
   }
 
