@@ -4,6 +4,8 @@ import {
   ProviderError,
   ReasoningParseError,
 } from './errors';
+import type { AgentEvent, AgentEventEmitter } from './events';
+import { NoopEventEmitter } from './events';
 import type { MemoryProvider } from './memory';
 import type { LLMProvider } from './provider';
 import type { Tool, ToolRegistry } from './tool';
@@ -97,6 +99,9 @@ export interface AgentConfig {
 
   /** Optional tool registry containing tools the agent can use. */
   tools?: ToolRegistry;
+
+  /** Optional event emitter for observability (console logging, OTEL, etc.). */
+  emitter?: AgentEventEmitter;
 }
 
 /**
@@ -149,6 +154,7 @@ export class Agent {
   private readonly maxIterations: number;
   private readonly memory?: MemoryProvider;
   private readonly tools?: ToolRegistry;
+  private readonly emitter: AgentEventEmitter;
   private messages: Message[] = [];
 
   constructor(config: AgentConfig) {
@@ -168,6 +174,7 @@ export class Agent {
     this.maxIterations = config.maxIterations ?? DEFAULT_MAX_ITERATIONS;
     this.memory = config.memory;
     this.tools = config.tools;
+    this.emitter = config.emitter ?? new NoopEventEmitter();
   }
 
   /**
@@ -180,6 +187,7 @@ export class Agent {
    * - `tool_call` → inject full tool schema, LLM constructs input, execute tool, feed result back
    */
   async invoke(prompt: string, options?: InvokeOptions): Promise<InvokeResult> {
+    this.emit('agent.invoke.start', { prompt });
     this.messages.push({ role: 'user', content: prompt });
 
     const maxIter = options?.maxIterations ?? this.maxIterations;
@@ -187,16 +195,23 @@ export class Agent {
     let pendingToolSchema: string | undefined;
 
     for (let i = 1; i <= maxIter; i++) {
+      this.emit('agent.iteration.start', { iteration: i, maxIterations: maxIter });
+
       const messagesToSend = this.buildMessages(pendingToolSchema);
       const mergedOptions = this.mergeOptions(options);
       pendingToolSchema = undefined;
+
+      this.emit('llm.call.start', { messageCount: messagesToSend.length });
 
       let rawResponse: ChatResponse;
       try {
         rawResponse = await this.provider.chat(messagesToSend, mergedOptions);
       } catch (error) {
+        this.emit('agent.error', { message: 'LLM provider chat call failed.', error: String(error) });
         throw new ProviderError('LLM provider chat call failed.', error);
       }
+
+      this.emit('llm.call.end', { totalTokens: rawResponse.usage?.totalTokens });
 
       const parsed = this.parseReasoningResponse(rawResponse.message.content);
 
@@ -209,13 +224,17 @@ export class Agent {
 
       // Persist memory if the LLM requested it
       if (parsed.memory && this.memory) {
+        this.emit('memory.store', { label: parsed.memory.label });
         await this.memory.store(this.name, parsed.memory);
       }
+
+      this.emit('agent.iteration.end', { iteration: i, action: parsed.action });
 
       if (parsed.action === 'done') {
         // Final answer — store assistant message and return
         this.messages.push({ role: 'assistant', content: parsed.content });
 
+        this.emit('agent.invoke.end', { totalIterations: i, completed: true });
         return {
           content: parsed.content,
           trace: { iterations, completed: true, totalIterations: i },
@@ -227,7 +246,10 @@ export class Agent {
 
         // Check if tool exists
         if (!this.tools || !this.tools.has(toolCall.name)) {
-          // Tool not found — tell the LLM and let it recover
+          this.emit('tool.not_found', {
+            toolName: toolCall.name,
+            availableTools: this.tools?.getCompactIndex() ?? 'none',
+          });
           this.messages.push({ role: 'assistant', content: rawResponse.message.content });
           this.messages.push({
             role: 'user',
@@ -238,7 +260,9 @@ export class Agent {
 
         // If the LLM provided input, execute the tool directly
         if (toolCall.input && Object.keys(toolCall.input).length > 0) {
+          this.emit('tool.call.start', { toolName: toolCall.name, input: toolCall.input });
           const toolResult = await this.executeTool(toolCall);
+          this.emit('tool.call.end', { toolName: toolCall.name, success: toolResult.success });
 
           this.messages.push({ role: 'assistant', content: rawResponse.message.content });
           this.messages.push({
@@ -249,7 +273,7 @@ export class Agent {
         }
 
         // LLM requested a tool but didn't provide input — inject full schema
-        // so the next iteration can construct the input accurately
+        this.emit('tool.schema.inject', { toolName: toolCall.name });
         const schema = this.tools.getFullSchema(toolCall.name);
         pendingToolSchema = schema;
         this.messages.push({ role: 'assistant', content: rawResponse.message.content });
@@ -273,6 +297,8 @@ export class Agent {
     const lastContent = lastIteration?.response.content ?? 'Unable to complete the task.';
     this.messages.push({ role: 'assistant', content: lastContent });
 
+    this.emit('agent.invoke.end', { totalIterations: iterations.length, completed: false });
+    this.emit('agent.error', { message: `Max iterations (${maxIter}) exceeded.` });
     throw new MaxIterationsError(maxIter, iterations.length);
   }
 
@@ -285,6 +311,7 @@ export class Agent {
    * once the stream completes.
    */
   async *invokeStream(prompt: string, options?: ChatOptions): AsyncIterable<ChatChunk> {
+    this.emit('agent.invoke_stream.start', { prompt });
     this.messages.push({ role: 'user', content: prompt });
 
     const messagesToSend = this.buildMessages();
@@ -298,10 +325,12 @@ export class Agent {
         yield chunk;
       }
     } catch (error) {
+      this.emit('agent.error', { message: 'LLM provider stream call failed.', error: String(error) });
       throw new ProviderError('LLM provider stream call failed.', error);
     }
 
     this.messages.push({ role: 'assistant', content: fullContent });
+    this.emit('agent.invoke_stream.end', { contentLength: fullContent.length });
   }
 
   /**
@@ -316,6 +345,18 @@ export class Agent {
    */
   clearHistory(): void {
     this.messages = [];
+  }
+
+  /**
+   * Emits a lifecycle event via the configured emitter.
+   */
+  private emit(type: AgentEvent['type'], data: Record<string, unknown>): void {
+    this.emitter.emit({
+      type,
+      timestamp: new Date().toISOString(),
+      agentName: this.name,
+      data,
+    });
   }
 
   /**

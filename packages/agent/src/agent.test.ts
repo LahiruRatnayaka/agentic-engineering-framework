@@ -835,3 +835,257 @@ describe('ToolRegistry', () => {
     expect(registry.getFullSchema('nonexistent')).toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Event emission tests
+// ---------------------------------------------------------------------------
+
+describe('Event emission', () => {
+  function createCollectorEmitter() {
+    const events: import('./events').AgentEvent[] = [];
+    return {
+      emitter: { emit: (e: import('./events').AgentEvent) => events.push(e) },
+      events,
+    };
+  }
+
+  it('should emit agent.invoke.start and agent.invoke.end for a simple invoke', async () => {
+    const { emitter, events } = createCollectorEmitter();
+    const provider = createMockProvider();
+    const agent = new Agent(createAgentConfig({ provider, emitter }));
+
+    await agent.invoke('Hello');
+
+    const types = events.map((e) => e.type);
+    expect(types).toContain('agent.invoke.start');
+    expect(types).toContain('agent.invoke.end');
+
+    const startEvent = events.find((e) => e.type === 'agent.invoke.start')!;
+    expect(startEvent.agentName).toBe('test-agent');
+    expect(startEvent.data['prompt']).toBe('Hello');
+    expect(startEvent.timestamp).toBeDefined();
+
+    const endEvent = events.find((e) => e.type === 'agent.invoke.end')!;
+    expect(endEvent.data['totalIterations']).toBe(1);
+    expect(endEvent.data['completed']).toBe(true);
+  });
+
+  it('should emit iteration and LLM lifecycle events', async () => {
+    const { emitter, events } = createCollectorEmitter();
+    const provider = createMockProvider();
+    const agent = new Agent(createAgentConfig({ provider, emitter }));
+
+    await agent.invoke('Hi');
+
+    const types = events.map((e) => e.type);
+    expect(types).toEqual([
+      'agent.invoke.start',
+      'agent.iteration.start',
+      'llm.call.start',
+      'llm.call.end',
+      'agent.iteration.end',
+      'agent.invoke.end',
+    ]);
+  });
+
+  it('should emit multiple iteration events for multi-step reasoning', async () => {
+    const { emitter, events } = createCollectorEmitter();
+    let callCount = 0;
+    const provider = createMockProvider({
+      chat: vi.fn(async (): Promise<ChatResponse> => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            message: {
+              role: 'assistant',
+              content: reasoningJson({ action: 'continue', content: 'Working...' }),
+            },
+          };
+        }
+        return {
+          message: {
+            role: 'assistant',
+            content: reasoningJson({ action: 'done', content: 'Done.' }),
+          },
+        };
+      }),
+    });
+
+    const agent = new Agent(createAgentConfig({ provider, emitter }));
+    await agent.invoke('Complex task');
+
+    const iterStarts = events.filter((e) => e.type === 'agent.iteration.start');
+    const iterEnds = events.filter((e) => e.type === 'agent.iteration.end');
+    expect(iterStarts).toHaveLength(2);
+    expect(iterEnds).toHaveLength(2);
+    expect(iterEnds[0]!.data['action']).toBe('continue');
+    expect(iterEnds[1]!.data['action']).toBe('done');
+  });
+
+  it('should emit tool events when a tool is called', async () => {
+    const { emitter, events } = createCollectorEmitter();
+    const tools = new ToolRegistry();
+    tools.register({
+      definition: {
+        name: 'calc',
+        description: 'Calculator',
+        inputSchema: { type: 'object', properties: { expr: { type: 'string' } } },
+      },
+      execute: vi.fn(async () => ({ toolName: 'calc', success: true, output: '42' })),
+    });
+
+    let callCount = 0;
+    const provider = createMockProvider({
+      chat: vi.fn(async (): Promise<ChatResponse> => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            message: {
+              role: 'assistant',
+              content: reasoningJson({
+                action: 'tool_call',
+                content: 'Calculating.',
+                tool_call: { name: 'calc', input: { expr: '6*7' } },
+              }),
+            },
+          };
+        }
+        return {
+          message: {
+            role: 'assistant',
+            content: reasoningJson({ action: 'done', content: '42' }),
+          },
+        };
+      }),
+    });
+
+    const agent = new Agent(createAgentConfig({ provider, tools, emitter }));
+    await agent.invoke('What is 6*7?');
+
+    const types = events.map((e) => e.type);
+    expect(types).toContain('tool.call.start');
+    expect(types).toContain('tool.call.end');
+
+    const toolStart = events.find((e) => e.type === 'tool.call.start')!;
+    expect(toolStart.data['toolName']).toBe('calc');
+
+    const toolEnd = events.find((e) => e.type === 'tool.call.end')!;
+    expect(toolEnd.data['success']).toBe(true);
+  });
+
+  it('should emit tool.not_found when tool does not exist', async () => {
+    const { emitter, events } = createCollectorEmitter();
+    let callCount = 0;
+    const provider = createMockProvider({
+      chat: vi.fn(async (): Promise<ChatResponse> => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            message: {
+              role: 'assistant',
+              content: reasoningJson({
+                action: 'tool_call',
+                content: 'Searching.',
+                tool_call: { name: 'missing_tool', input: { q: 'test' } },
+              }),
+            },
+          };
+        }
+        return {
+          message: {
+            role: 'assistant',
+            content: reasoningJson({ action: 'done', content: 'Fallback answer.' }),
+          },
+        };
+      }),
+    });
+
+    const tools = new ToolRegistry();
+    const agent = new Agent(createAgentConfig({ provider, tools, emitter }));
+    await agent.invoke('Search');
+
+    const types = events.map((e) => e.type);
+    expect(types).toContain('tool.not_found');
+    expect(events.find((e) => e.type === 'tool.not_found')!.data['toolName']).toBe('missing_tool');
+  });
+
+  it('should emit memory.store event when memory is persisted', async () => {
+    const { emitter, events } = createCollectorEmitter();
+    const memoryProvider: MemoryProvider = {
+      store: vi.fn(async () => {}),
+      retrieve: vi.fn(async () => []),
+    };
+
+    const provider = createMockProvider({
+      chat: vi.fn(async (): Promise<ChatResponse> => ({
+        message: {
+          role: 'assistant',
+          content: reasoningJson({
+            content: 'Answer',
+            memory: { label: 'fact', content: 'Important fact' },
+          }),
+        },
+      })),
+    });
+
+    const agent = new Agent(createAgentConfig({ provider, memory: memoryProvider, emitter }));
+    await agent.invoke('Remember this');
+
+    const types = events.map((e) => e.type);
+    expect(types).toContain('memory.store');
+    expect(events.find((e) => e.type === 'memory.store')!.data['label']).toBe('fact');
+  });
+
+  it('should emit agent.error when provider fails', async () => {
+    const { emitter, events } = createCollectorEmitter();
+    const provider = createMockProvider({
+      chat: vi.fn(async () => { throw new Error('Network fail'); }),
+    });
+
+    const agent = new Agent(createAgentConfig({ provider, emitter }));
+
+    await expect(agent.invoke('Hi')).rejects.toThrow();
+
+    const types = events.map((e) => e.type);
+    expect(types).toContain('agent.error');
+  });
+
+  it('should emit stream events for invokeStream', async () => {
+    const { emitter, events } = createCollectorEmitter();
+    const agent = new Agent(createAgentConfig({ emitter }));
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    for await (const _chunk of agent.invokeStream('Hello')) {
+      // consume
+    }
+
+    const types = events.map((e) => e.type);
+    expect(types).toContain('agent.invoke_stream.start');
+    expect(types).toContain('agent.invoke_stream.end');
+
+    const endEvent = events.find((e) => e.type === 'agent.invoke_stream.end')!;
+    expect(endEvent.data['contentLength']).toBe(18); // 'Hello from stream!'
+  });
+
+  it('should emit error + invoke.end events when max iterations exceeded', async () => {
+    const { emitter, events } = createCollectorEmitter();
+    const provider = createMockProvider({
+      chat: vi.fn(async (): Promise<ChatResponse> => ({
+        message: {
+          role: 'assistant',
+          content: reasoningJson({ action: 'continue', content: 'Still working...' }),
+        },
+      })),
+    });
+
+    const agent = new Agent(createAgentConfig({ provider, emitter, maxIterations: 2 }));
+    await expect(agent.invoke('Task')).rejects.toThrow(MaxIterationsError);
+
+    const types = events.map((e) => e.type);
+    expect(types).toContain('agent.invoke.end');
+    expect(types).toContain('agent.error');
+
+    const endEvent = events.find((e) => e.type === 'agent.invoke.end')!;
+    expect(endEvent.data['completed']).toBe(false);
+  });
+});

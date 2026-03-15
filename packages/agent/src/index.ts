@@ -9,6 +9,9 @@ export { FlatFileMemoryProvider } from './memory';
 export type { Tool } from './tool';
 export { ToolRegistry } from './tool';
 
+export type { EventType, AgentEvent, AgentEventEmitter } from './events';
+export { ConsoleEventEmitter, NoopEventEmitter } from './events';
+
 export type {
   Role,
   Message,
