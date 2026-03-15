@@ -6,15 +6,30 @@
  */
 
 // Core
-export { Agent, EasaError, ProviderError, AgentConfigError } from '@agentic-eng/agent';
+export {
+  Agent,
+  FlatFileMemoryProvider,
+  EasaError,
+  ProviderError,
+  AgentConfigError,
+  MaxIterationsError,
+  ReasoningParseError,
+} from '@agentic-eng/agent';
 export type {
   AgentConfig,
   InvokeResult,
   LLMProvider,
+  MemoryProvider,
   Role,
   Message,
   ChatOptions,
   ChatResponse,
   ChatChunk,
   TokenUsage,
+  ReasoningAction,
+  LLMReasoningResponse,
+  MemoryEntry,
+  IterationResult,
+  ReasoningTrace,
+  InvokeOptions,
 } from '@agentic-eng/agent';

@@ -30,3 +30,32 @@ export class AgentConfigError extends EasaError {
     this.name = 'AgentConfigError';
   }
 }
+
+/**
+ * Thrown when the agent's reasoning loop exceeds the maximum allowed iterations.
+ */
+export class MaxIterationsError extends EasaError {
+  constructor(
+    public readonly maxIterations: number,
+    public readonly iterationsCompleted: number,
+  ) {
+    super(
+      `Agent reasoning loop exceeded maximum of ${maxIterations} iterations ` +
+        `(completed ${iterationsCompleted}). The goal could not be achieved.`,
+    );
+    this.name = 'MaxIterationsError';
+  }
+}
+
+/**
+ * Thrown when the LLM response cannot be parsed as a valid reasoning JSON.
+ */
+export class ReasoningParseError extends EasaError {
+  constructor(
+    message: string,
+    public readonly rawContent: string,
+  ) {
+    super(message);
+    this.name = 'ReasoningParseError';
+  }
+}
