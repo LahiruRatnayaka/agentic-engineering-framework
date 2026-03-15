@@ -1,6 +1,6 @@
 {
   "name": "@agentic-eng/easa",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0",
   "description": "EASA — Easy Agent System Architecture: A Minimal TypeScript Framework for Agent Systems.",
   "keywords": [
     "agent",
