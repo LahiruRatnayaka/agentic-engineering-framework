@@ -1,5 +1,16 @@
 # @agentic-eng/easa
 
+## 0.1.0-beta.2
+
+### Minor Changes
+
+- readme update
+
+### Patch Changes
+
+- Updated dependencies
+  - @agentic-eng/agent@0.1.0-beta.2
+
 ## 0.1.0-beta.1
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @agentic-eng/agent
 
+## 0.1.0-beta.2
+
+### Minor Changes
+
+- readme update
+
 ## 0.1.0-beta.1
 
 ### Minor Changes

@@ -2,6 +2,8 @@
 
 > Core agent primitives and runtime for EASA — Easy Agent System Architecture.
 
+[PLEASE NOTE: This package is not yet ready for production use. It is currently in beta and may change significantly before the first stable release.]
+
 ## Installation
 
 ```bash
