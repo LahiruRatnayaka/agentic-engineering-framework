@@ -1,9 +1,22 @@
 /**
- * EASA — Easy Agent System Architecture
+ * @deprecated This package is deprecated and will be removed after 15 April 2026.
+ * Please migrate to `@agentic-eng/agent` which contains all the same exports.
  *
- * Umbrella package that re-exports core primitives from all EASA packages.
- * For granular imports, use the individual packages directly (e.g. @agentic-eng/agent).
+ * Migration:
+ *   npm uninstall @agentic-eng/easa
+ *   npm install @agentic-eng/agent
+ *
+ * Then update imports:
+ *   - import { Agent } from '@agentic-eng/easa';
+ *   + import { Agent } from '@agentic-eng/agent';
  */
+
+// Runtime deprecation warning
+const _warn = (globalThis as unknown as { console: { warn: (...args: string[]) => void } }).console.warn;
+_warn(
+  '\x1b[33m[DEPRECATED]\x1b[0m @agentic-eng/easa is deprecated and will be removed after 15 April 2026. ' +
+  'Please migrate to @agentic-eng/agent. See https://www.npmjs.com/package/@agentic-eng/agent'
+);
 
 // Core
 export {

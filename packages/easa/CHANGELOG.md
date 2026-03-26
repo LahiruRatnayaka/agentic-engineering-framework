@@ -1,5 +1,13 @@
 # @agentic-eng/easa
 
+## 0.1.1
+
+### Patch Changes
+
+- deprecate: mark @agentic-eng/easa as deprecated (sunset 15 April 2026), update docs to point to @agentic-eng/agent
+- Updated dependencies
+  - @agentic-eng/agent@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

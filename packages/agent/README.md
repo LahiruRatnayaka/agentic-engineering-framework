@@ -320,6 +320,13 @@ const result = await agent.invoke('What should I pack for Bangkok next week?');
 console.log(result.content);
 ```
 
+## Feedback & Contact
+
+Have questions, feedback, or ideas? Reach out:
+
+- **Email:** [lahirunimantha@outlook.com](mailto:lahirunimantha@outlook.com)
+- **LinkedIn:** [Lahiru Nimantha](https://www.linkedin.com/in/lahirunimantha/)
+
 ## License
 
 [MIT](../../LICENSE)

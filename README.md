@@ -18,20 +18,15 @@ EASA provides the fundamental building blocks for creating AI agents that can **
 - **Dual Output** — ESM + CJS with full TypeScript declarations
 - **Zero LLM Lock-in** — Implement the `LLMProvider` interface for any backend
 
-## Packages
-
-| Package | Description |
-| --- | --- |
-| [`@agentic-eng/agent`](./packages/agent) | Core agent class, reasoning loop, tools, memory, events |
-| [`@agentic-eng/easa`](./packages/easa) | Umbrella package — re-exports everything from `@agentic-eng/agent` |
+## Installation
 
 ```bash
-# Granular
+npm install @agentic-eng/agent
+# or
 pnpm add @agentic-eng/agent
-
-# Or umbrella
-pnpm add @agentic-eng/easa
 ```
+
+> **Note:** The `@agentic-eng/easa` umbrella package is deprecated and will be removed after 15 April 2026. Please use `@agentic-eng/agent` directly.
 
 ## Quick Start
 
@@ -400,7 +395,7 @@ easa/
 │   │       ├── events.ts        # Event system (emitter + types)
 │   │       ├── index.ts         # Public API exports
 │   │       └── agent.test.ts    # 48 tests
-│   └── easa/                    # @agentic-eng/easa (umbrella)
+│   └── easa/                    # @agentic-eng/easa (DEPRECATED)
 │       └── src/
 │           └── index.ts         # Re-exports from @agentic-eng/agent
 ├── package.json
@@ -439,6 +434,13 @@ pnpm format           # Format
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a PR.
+
+## Feedback & Contact
+
+Have questions, feedback, or ideas? Reach out:
+
+- **Email:** [lahirunimantha@outlook.com](mailto:lahirunimantha@outlook.com)
+- **LinkedIn:** [Lahiru Nimantha](https://www.linkedin.com/in/lahirunimantha/)
 
 ## License
 

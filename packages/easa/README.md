@@ -1,121 +1,55 @@
-# @agentic-eng/easa
+# ⚠️ @agentic-eng/easa — DEPRECATED
 
-> EASA — Easy Agent System Architecture: A minimal, type-safe TypeScript framework for building LLM-powered agent systems.
+> **This package is deprecated and will be removed after 15 April 2026.**
+>
+> Please migrate to [`@agentic-eng/agent`](https://www.npmjs.com/package/@agentic-eng/agent), which contains all the same exports.
 
-[![npm](https://img.shields.io/npm/v/@agentic-eng/easa)](https://www.npmjs.com/package/@agentic-eng/easa)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+---
 
-> **Beta** — API may change before 1.0. Feedback welcome!
+## Migration Guide
 
-This is the **umbrella package** that re-exports everything from all EASA packages in a single import. For granular, tree-shakeable imports, use [`@agentic-eng/agent`](https://www.npmjs.com/package/@agentic-eng/agent) directly.
-
-## Installation
+Replace your dependency:
 
 ```bash
-npm install @agentic-eng/easa
-# or
-pnpm add @agentic-eng/easa
+# Remove this package
+npm uninstall @agentic-eng/easa
+
+# Install the replacement
+npm install @agentic-eng/agent
 ```
 
-## Quick Start
+Update your imports:
 
-```typescript
-import { Agent, ToolRegistry, FlatFileMemoryProvider, ConsoleEventEmitter } from '@agentic-eng/easa';
-import type { LLMProvider, Tool } from '@agentic-eng/easa';
+```diff
+- import { Agent, ToolRegistry } from '@agentic-eng/easa';
++ import { Agent, ToolRegistry } from '@agentic-eng/agent';
 
-// 1. Bring your own LLM
-const provider: LLMProvider = {
-  async chat(messages) {
-    const res = await callYourLLM(messages);
-    return { message: { role: 'assistant', content: res.text } };
-  },
-  async *chatStream(messages) {
-    for await (const chunk of streamYourLLM(messages)) {
-      yield { delta: chunk.text, done: chunk.finished };
-    }
-  },
-};
-
-// 2. Define tools
-const calculator: Tool = {
-  definition: {
-    name: 'calculator',
-    description: 'Evaluates arithmetic expressions.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        expression: { type: 'string', description: 'Math expression' },
-      },
-      required: ['expression'],
-    },
-  },
-  async execute(input) {
-    const result = evaluate(input.expression as string);
-    return { toolName: 'calculator', success: true, output: String(result) };
-  },
-};
-
-const tools = new ToolRegistry();
-tools.register(calculator);
-
-// 3. Create an agent
-const agent = new Agent({
-  name: 'assistant',
-  provider,
-  systemPrompt: 'You are a helpful assistant.',
-  tools,
-  memory: new FlatFileMemoryProvider('./memory'),
-  emitter: new ConsoleEventEmitter(),
-  maxIterations: 10,
-});
-
-// 4. Use it
-const result = await agent.invoke('What is 42 × 17?');
-console.log(result.content);
-console.log(`Done in ${result.trace.totalIterations} iteration(s)`);
-
-// Or stream
-for await (const chunk of agent.invokeStream('Tell me a story.')) {
-  process.stdout.write(chunk.delta);
-}
+- import type { LLMProvider, Tool } from '@agentic-eng/easa';
++ import type { LLMProvider, Tool } from '@agentic-eng/agent';
 ```
 
-## What's Included
+**No API changes** — all exports are identical. This is a drop-in replacement.
 
-Everything from `@agentic-eng/agent` is re-exported:
+---
 
-| Export | Description |
+## Why?
+
+The `@agentic-eng/easa` umbrella package was a thin re-export layer over `@agentic-eng/agent`. Going forward, `@agentic-eng/agent` is the single, primary package for the EASA framework. Consolidating to one package simplifies installation, reduces confusion, and streamlines releases.
+
+## Timeline
+
+| Date | Action |
 | --- | --- |
-| `Agent` | Core agent class with reasoning loop |
-| `ToolRegistry` | Tool management (custom + MCP) |
-| `FlatFileMemoryProvider` | File-based memory using KNL format |
-| `ConsoleEventEmitter` | Pretty-printed console event logger |
-| `NoopEventEmitter` | Silent emitter (default) |
-| `LLMProvider` | Interface — implement for your LLM backend |
-| `Tool` | Interface — implement for custom tools |
-| `MemoryProvider` | Interface — implement for custom storage |
-| `AgentEventEmitter` | Interface — implement for custom observability |
-| Error classes | `EasaError`, `ProviderError`, `AgentConfigError`, `MaxIterationsError`, `ReasoningParseError`, `ToolExecutionError` |
+| **Now** | `@agentic-eng/easa` marked as deprecated on npm |
+| **15 April 2026** | Final version — no further updates |
+| **After 15 April 2026** | Package will remain on npm but receive no maintenance |
 
-## Key Features
+## Feedback & Contact
 
-- **Reasoning Loop** — JSON-controlled iteration: the LLM decides when it's done
-- **Tool System** — Hybrid approach: compact index every call, full schema on demand
-- **Memory** — Pluggable persistence (built-in KNL flat files or custom backends)
-- **Event Emission** — OTEL-aligned lifecycle events at every execution point
-- **Streaming** — Single-pass streaming via `invokeStream()`
-- **Zero LLM Lock-in** — Bring any LLM backend via the `LLMProvider` interface
-- **Dual Output** — ESM + CJS with full TypeScript declarations
+Questions about migrating? Reach out:
 
-## Documentation
-
-Full documentation with detailed examples for each feature is available in the [`@agentic-eng/agent` README](https://www.npmjs.com/package/@agentic-eng/agent).
-
-## Granular Packages
-
-| Package | Description |
-| --- | --- |
-| [`@agentic-eng/agent`](https://www.npmjs.com/package/@agentic-eng/agent) | Core agent, reasoning loop, tools, memory, events |
+- **Email:** [lahirunimantha@outlook.com](mailto:lahirunimantha@outlook.com)
+- **LinkedIn:** [Lahiru Nimantha](https://www.linkedin.com/in/lahirunimantha/)
 
 ## License
 
