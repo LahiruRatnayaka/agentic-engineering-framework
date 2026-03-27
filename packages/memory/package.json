@@ -1,6 +1,6 @@
 {
   "name": "@agentic-eng/memory",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Memory implementations for the EASA framework.",
   "keywords": [
     "agent",
