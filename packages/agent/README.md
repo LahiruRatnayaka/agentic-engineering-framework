@@ -1,32 +1,88 @@
 # @agentic-eng/agent
 
-> Core agent class and reasoning loop for [EASA](https://github.com/easa-framework/easa) — Easy Agent System Architecture.
+> The core agent class and reasoning loop for [EASA](https://github.com/easa-framework/easa) — Easy Agent System Architecture.
 
 [![npm](https://img.shields.io/npm/v/@agentic-eng/agent)](https://www.npmjs.com/package/@agentic-eng/agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.4+-blue.svg)](https://www.typescriptlang.org/)
 
 > **Beta** — API may change before 1.0. Feedback welcome!
+
+---
+
+## What is EASA?
+
+EASA (Easy Agent System Architecture) is a minimal, type-safe TypeScript framework for building LLM-powered agent systems. It provides the building blocks for agents that can **reason**, **use tools**, **persist knowledge**, and **emit observable events** — all with a clean, composable API and **zero LLM lock-in**.
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                        Agent                            │
+│                                                         │
+│  ┌──────────┐  ┌─────────────┐  ┌───────────────────┐  │
+│  │ LLM      │  │ Tool        │  │ Memory            │  │
+│  │ Provider  │  │ Registry    │  │ Provider          │  │
+│  │ (custom)  │  │             │  │                   │  │
+│  └─────┬────┘  │ ┌─────────┐ │  │ ┌───────────────┐ │  │
+│        │       │ │ Tool 1  │ │  │ │ FlatFile (KNL)│ │  │
+│        │       │ │ Tool 2  │ │  │ │ or Custom     │ │  │
+│        │       │ │ Tool N  │ │  │ └───────────────┘ │  │
+│        │       │ └─────────┘ │  └───────────────────┘  │
+│        │       └─────────────┘                          │
+│        ▼                                                │
+│  ┌─────────────────────────────┐   ┌────────────────┐  │
+│  │     Reasoning Loop          │   │ Observability  │  │
+│  │                             │──▶│ (Console/OTEL) │  │
+│  │  done → return answer       │   └────────────────┘  │
+│  │  continue → next iteration  │                        │
+│  │  tool_call → execute tool   │                        │
+│  └─────────────────────────────┘                        │
+└─────────────────────────────────────────────────────────┘
+```
+
+The agent runs a **JSON-controlled reasoning loop** where the LLM decides at each step whether to return a final answer (`done`), continue thinking (`continue`), or call a tool (`tool_call`). Simple questions resolve in 1 iteration. Complex tasks iterate up to `maxIterations` (default: 5).
+
+### EASA Package Ecosystem
+
+EASA is modular — install only what you need:
+
+| Package | Description |
+| --- | --- |
+| **`@agentic-eng/agent`** (this package) | `Agent` class, reasoning loop, and re-exports from core packages |
+| [`@agentic-eng/core`](https://www.npmjs.com/package/@agentic-eng/core) | Shared types, enums, and error classes |
+| [`@agentic-eng/provider`](https://www.npmjs.com/package/@agentic-eng/provider) | Interface-only contracts (`LlmProvider`, `MemoryProvider`, `ObservabilityProvider`) |
+| [`@agentic-eng/tool`](https://www.npmjs.com/package/@agentic-eng/tool) | `Tool` interface and `ToolRegistry` |
+| [`@agentic-eng/memory`](https://www.npmjs.com/package/@agentic-eng/memory) | Memory implementations (`FlatFileMemory`) |
+| [`@agentic-eng/observability`](https://www.npmjs.com/package/@agentic-eng/observability) | Observability implementations (`ConsoleObserver`, `NoopObserver`) |
+
+**This package** (`@agentic-eng/agent`) is the main entry point. It re-exports all types from `core`, all interfaces from `provider`, and the `ToolRegistry` from `tool` — so for most users, this is the only required install. Memory and observability implementations are optional add-ons.
+
+---
 
 ## Installation
 
 ```bash
 npm install @agentic-eng/agent
-# or
-pnpm add @agentic-eng/agent
+
+# Optional — add concrete implementations as needed:
+npm install @agentic-eng/memory          # FlatFileMemory (KNL-based persistence)
+npm install @agentic-eng/observability    # ConsoleObserver, NoopObserver
 ```
+
+---
 
 ## Quick Start
 
 ### 1. Implement an LLM Provider
 
-EASA ships zero LLM dependencies — you bring your own backend:
+EASA ships zero LLM dependencies — you bring your own backend (OpenAI, Anthropic, local models, etc.):
 
 ```typescript
 import type { LlmProvider, Message, ChatResponse, ChatChunk } from '@agentic-eng/agent';
 
 const myProvider: LlmProvider = {
   async chat(messages: Message[]): Promise<ChatResponse> {
-    // Call OpenAI, Anthropic, local model, etc.
     const response = await callYourLLM(messages);
     return { message: { role: 'assistant', content: response.text } };
   },
@@ -55,13 +111,15 @@ const agent = new Agent({
 
 ```typescript
 const result = await agent.invoke('What is the capital of Thailand?');
-console.log(result.content);        // "Bangkok is the capital of Thailand."
-console.log(result.trace.totalIterations); // 1
+console.log(result.content);               // "Bangkok is the capital of Thailand."
+console.log(result.trace.totalIterations);  // 1
 ```
+
+---
 
 ## Reasoning Loop
 
-The agent uses a JSON-based reasoning loop. The LLM responds with structured JSON at every step:
+At every step, the LLM responds with structured JSON:
 
 ```json
 {
@@ -79,9 +137,22 @@ The agent uses a JSON-based reasoning loop. The LLM responds with structured JSO
 | `continue` | Next iteration with intermediate output fed back |
 | `tool_call` | Execute tool, feed result back, next iteration |
 
-Simple prompts resolve in 1 iteration. Complex tasks iterate (up to `maxIterations`, default 5) with the LLM deciding when it's done.
+```
+User: "What is 42 × 17?"
+│
+├─ Iteration 1: LLM → action="tool_call" tool="calculator" input={expression:"42*17"}
+│   → Execute calculator → "714"
+│   → Feed result back to LLM
+│
+├─ Iteration 2: LLM → action="done" content="42 × 17 = 714"
+│   → Return to user
+```
 
-## Tools
+---
+
+## Adding Tools
+
+Tools let the agent interact with external systems. Define tools with the `Tool` interface and group them in a `ToolRegistry` (both re-exported from `@agentic-eng/tool`):
 
 ```typescript
 import { ToolRegistry } from '@agentic-eng/agent';
@@ -119,10 +190,20 @@ const result = await agent.invoke('What is 42 × 17?');
 ```
 
 The agent uses a **hybrid schema approach** to save tokens:
-1. Every LLM call sends only tool names + descriptions (~10 tokens each)
-2. When a tool is needed, the full JSON Schema is injected on demand
+1. **Every LLM call** — only tool names + descriptions are sent (~10 tokens per tool)
+2. **When a tool is needed** — the full JSON Schema for that specific tool is injected on demand
 
-## Memory
+This scales well even with 50+ tools registered. See [`@agentic-eng/tool`](https://www.npmjs.com/package/@agentic-eng/tool) for the full `ToolRegistry` API.
+
+---
+
+## Adding Memory
+
+Memory lets the agent persist knowledge across invocations. The LLM decides *when* to store information. Install the optional memory package:
+
+```bash
+npm install @agentic-eng/memory
+```
 
 ```typescript
 import { FlatFileMemory } from '@agentic-eng/memory';
@@ -134,20 +215,17 @@ const agent = new Agent({
 });
 ```
 
-The LLM decides when to persist knowledge. Memories are stored as [KNL](https://github.com/knl-lang/knl) DATA blocks. Implement `MemoryProvider` for custom backends (vector DB, Redis, Postgres, etc.):
+Memories are stored as [KNL](https://github.com/knl-lang/knl) DATA blocks. You can also implement your own backend (vector DB, Redis, Postgres, etc.) — see [`@agentic-eng/memory`](https://www.npmjs.com/package/@agentic-eng/memory) for details, or implement the `MemoryProvider` interface from [`@agentic-eng/provider`](https://www.npmjs.com/package/@agentic-eng/provider) directly.
 
-```typescript
-import type { MemoryProvider, MemoryEntry } from '@agentic-eng/agent';
+---
 
-const customMemory: MemoryProvider = {
-  async store(agentName: string, entry: MemoryEntry) { /* ... */ },
-  async retrieve(agentName: string): Promise<MemoryEntry[]> { /* ... */ },
-};
+## Adding Observability
+
+Every lifecycle point emits a structured event, designed for OTEL integration. Install the optional observability package:
+
+```bash
+npm install @agentic-eng/observability
 ```
-
-## Event Emission (Observability)
-
-OTEL-aligned lifecycle events for debugging and monitoring:
 
 ```typescript
 import { ConsoleObserver } from '@agentic-eng/observability';
@@ -172,17 +250,7 @@ Console output:
 [EASA] 14:23:06.202Z ■ INVOKE  agent="assistant" iterations=2 completed=true
 ```
 
-Implement `ObservabilityProvider` for OTEL, Datadog, or any custom backend:
-
-```typescript
-import type { ObservabilityProvider, AgentEvent } from '@agentic-eng/provider';
-
-const otelObserver: ObservabilityProvider = {
-  emit(event: AgentEvent) {
-    tracer.startSpan(event.type, { attributes: event.data });
-  },
-};
-```
+You can also implement your own observer for OTEL, Datadog, etc. — see [`@agentic-eng/observability`](https://www.npmjs.com/package/@agentic-eng/observability) for details, or implement the `ObservabilityProvider` interface from [`@agentic-eng/provider`](https://www.npmjs.com/package/@agentic-eng/provider) directly.
 
 ### Event Types
 
@@ -198,6 +266,8 @@ const otelObserver: ObservabilityProvider = {
 | `memory.store` | Knowledge persisted |
 | `agent.error` | Any error during execution |
 
+---
+
 ## Streaming
 
 For conversational responses without the reasoning loop:
@@ -208,9 +278,11 @@ for await (const chunk of agent.invokeStream('Tell me a story.')) {
 }
 ```
 
+---
+
 ## Error Handling
 
-All errors extend `EasaError`:
+All errors extend `EasaError` for easy catching:
 
 ```typescript
 import { MaxIterationsError, ProviderError } from '@agentic-eng/agent';
@@ -234,6 +306,8 @@ try {
 | `ReasoningParseError` | LLM returns invalid JSON |
 | `ToolExecutionError` | Tool execution fails |
 
+---
+
 ## API Reference
 
 ### `AgentConfig`
@@ -246,9 +320,9 @@ interface AgentConfig {
   systemPrompt?: string;              // Custom system prompt
   defaultOptions?: ChatOptions;       // Default LLM options (temperature, maxTokens, etc.)
   maxIterations?: number;             // Max reasoning iterations (default: 5)
-  memory?: MemoryProvider;            // Knowledge persistence
-  tools?: ToolRegistry;               // Available tools
-  observability?: ObservabilityProvider; // Event observer for observability
+  memory?: MemoryProvider;            // Knowledge persistence (@agentic-eng/memory)
+  tools?: ToolRegistry;               // Available tools (@agentic-eng/tool)
+  observability?: ObservabilityProvider; // Event observer (@agentic-eng/observability)
 }
 ```
 
@@ -270,6 +344,8 @@ interface InvokeResult {
 | `getMessages()` | `Message[]` | Copy of conversation history |
 | `clearHistory()` | `void` | Reset conversation |
 
+---
+
 ## Full Example
 
 ```typescript
@@ -278,10 +354,10 @@ import type { Tool, LlmProvider } from '@agentic-eng/agent';
 import { FlatFileMemory } from '@agentic-eng/memory';
 import { ConsoleObserver } from '@agentic-eng/observability';
 
-// 1. Provider
+// 1. Provider — bring your own LLM
 const provider: LlmProvider = { /* your implementation */ };
 
-// 2. Tools
+// 2. Tools — give the agent capabilities
 const weatherTool: Tool = {
   definition: {
     name: 'weather',
@@ -301,7 +377,7 @@ const weatherTool: Tool = {
 const tools = new ToolRegistry();
 tools.register(weatherTool);
 
-// 3. Agent
+// 3. Agent — compose everything together
 const agent = new Agent({
   name: 'travel-assistant',
   provider,
@@ -317,10 +393,25 @@ const result = await agent.invoke('What should I pack for Bangkok next week?');
 console.log(result.content);
 ```
 
+---
+
+## Related Packages
+
+| Package | What it provides |
+| --- | --- |
+| [`@agentic-eng/core`](https://www.npmjs.com/package/@agentic-eng/core) | Types and error classes (auto-included) |
+| [`@agentic-eng/provider`](https://www.npmjs.com/package/@agentic-eng/provider) | `LlmProvider`, `MemoryProvider`, `ObservabilityProvider` interfaces (auto-included) |
+| [`@agentic-eng/tool`](https://www.npmjs.com/package/@agentic-eng/tool) | `Tool` interface and `ToolRegistry` (auto-included) |
+| [`@agentic-eng/memory`](https://www.npmjs.com/package/@agentic-eng/memory) | `FlatFileMemory` — optional, install separately |
+| [`@agentic-eng/observability`](https://www.npmjs.com/package/@agentic-eng/observability) | `ConsoleObserver`, `NoopObserver` — optional, install separately |
+
+---
+
 ## Feedback & Contact
 
-Have questions, feedback, or ideas? Reach out:
+Have questions, feedback, or ideas? We'd love to hear from you:
 
+- **GitHub Issues:** [easa-framework/easa](https://github.com/easa-framework/easa/issues)
 - **Email:** [lahirunimantha@outlook.com](mailto:lahirunimantha@outlook.com)
 - **LinkedIn:** [Lahiru Nimantha](https://www.linkedin.com/in/lahirunimantha/)
 

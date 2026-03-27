@@ -1,6 +1,6 @@
 {
   "name": "@agentic-eng/core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Shared types, enums, and errors for the EASA framework.",
   "keywords": [
     "agent",
@@ -12,7 +12,7 @@
     "core"
   ],
   "license": "MIT",
-  "author": "EASA Contributors",
+  "author": "Lahiru Ratnayaka",
   "repository": {
     "type": "git",
     "url": "https://github.com/easa-framework/easa.git",

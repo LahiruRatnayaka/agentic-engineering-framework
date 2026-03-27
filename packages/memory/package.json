@@ -1,6 +1,6 @@
 {
   "name": "@agentic-eng/memory",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Memory implementations for the EASA framework.",
   "keywords": [
     "agent",
@@ -12,7 +12,7 @@
     "memory"
   ],
   "license": "MIT",
-  "author": "EASA Contributors",
+  "author": "Lahiru Ratnayaka",
   "repository": {
     "type": "git",
     "url": "https://github.com/easa-framework/easa.git",
