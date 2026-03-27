@@ -79,7 +79,8 @@ npm install @agentic-eng/observability    # ConsoleObserver, NoopObserver
 EASA ships zero LLM dependencies — you bring your own backend (OpenAI, Anthropic, local models, etc.):
 
 ```typescript
-import type { LlmProvider, Message, ChatResponse, ChatChunk } from '@agentic-eng/agent';
+import type { LlmProvider } from '@agentic-eng/provider';
+import type { Message, ChatResponse, ChatChunk } from '@agentic-eng/core';
 
 const myProvider: LlmProvider = {
   async chat(messages: Message[]): Promise<ChatResponse> {
@@ -155,8 +156,8 @@ User: "What is 42 × 17?"
 Tools let the agent interact with external systems. Define tools with the `Tool` interface and group them in a `ToolRegistry` (both re-exported from `@agentic-eng/tool`):
 
 ```typescript
-import { ToolRegistry } from '@agentic-eng/agent';
-import type { Tool } from '@agentic-eng/agent';
+import { ToolRegistry } from '@agentic-eng/tool';
+import type { Tool } from '@agentic-eng/tool';
 
 const calculator: Tool = {
   definition: {
@@ -285,7 +286,7 @@ for await (const chunk of agent.invokeStream('Tell me a story.')) {
 All errors extend `EasaError` for easy catching:
 
 ```typescript
-import { MaxIterationsError, ProviderError } from '@agentic-eng/agent';
+import { MaxIterationsError, ProviderError } from '@agentic-eng/core';
 
 try {
   await agent.invoke('Complex task');
@@ -349,8 +350,10 @@ interface InvokeResult {
 ## Full Example
 
 ```typescript
-import { Agent, ToolRegistry } from '@agentic-eng/agent';
-import type { Tool, LlmProvider } from '@agentic-eng/agent';
+import { Agent } from '@agentic-eng/agent';
+import { ToolRegistry } from '@agentic-eng/tool';
+import type { Tool } from '@agentic-eng/tool';
+import type { LlmProvider } from '@agentic-eng/provider';
 import { FlatFileMemory } from '@agentic-eng/memory';
 import { ConsoleObserver } from '@agentic-eng/observability';
 

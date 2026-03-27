@@ -50,7 +50,8 @@ npm install @agentic-eng/core @agentic-eng/provider @agentic-eng/tool
 ### 1. Implement an LLM Provider
 
 ```typescript
-import type { LlmProvider, Message, ChatResponse, ChatChunk } from '@agentic-eng/agent';
+import type { LlmProvider } from '@agentic-eng/provider';
+import type { Message, ChatResponse, ChatChunk } from '@agentic-eng/core';
 
 const myProvider: LlmProvider = {
   async chat(messages: Message[]): Promise<ChatResponse> {
@@ -133,7 +134,7 @@ Tools are defined via the `Tool` interface and managed by a `ToolRegistry`. Both
 ### Defining a Tool
 
 ```typescript
-import type { Tool } from '@agentic-eng/agent';
+import type { Tool } from '@agentic-eng/tool';
 
 const calculator: Tool = {
   definition: {
@@ -157,7 +158,7 @@ const calculator: Tool = {
 ### Registering Tools
 
 ```typescript
-import { ToolRegistry } from '@agentic-eng/agent';
+import { ToolRegistry } from '@agentic-eng/tool';
 
 const tools = new ToolRegistry();
 tools.register(calculator, weatherTool, searchTool);
@@ -212,7 +213,7 @@ ITEM["Bangkok is the capital of Thailand."] [DESC:"Thailand capital"]
 Implement the `MemoryProvider` interface:
 
 ```typescript
-import type { MemoryProvider, MemoryEntry } from '@agentic-eng/agent';
+import type { MemoryProvider, MemoryEntry } from '@agentic-eng/provider';
 
 const vectorMemory: MemoryProvider = {
   async store(agentName: string, entry: MemoryEntry) {
@@ -306,7 +307,7 @@ import {
   MaxIterationsError,
   ReasoningParseError,
   ToolExecutionError,
-} from '@agentic-eng/agent';
+} from '@agentic-eng/core';
 
 try {
   await agent.invoke('Complex task');
@@ -322,8 +323,10 @@ try {
 ## Full Example
 
 ```typescript
-import { Agent, ToolRegistry } from '@agentic-eng/agent';
-import type { Tool, LlmProvider } from '@agentic-eng/agent';
+import { Agent } from '@agentic-eng/agent';
+import { ToolRegistry } from '@agentic-eng/tool';
+import type { Tool } from '@agentic-eng/tool';
+import type { LlmProvider } from '@agentic-eng/provider';
 import { FlatFileMemory } from '@agentic-eng/memory';
 import { ConsoleObserver } from '@agentic-eng/observability';
 
