@@ -1,6 +1,6 @@
 {
   "name": "@agentic-eng/core",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Shared types, enums, and errors for the EASA framework.",
   "keywords": [
     "agent",

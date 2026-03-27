@@ -1,6 +1,6 @@
 {
   "name": "@agentic-eng/observability",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Observability implementations for the EASA framework.",
   "keywords": [
     "agent",
