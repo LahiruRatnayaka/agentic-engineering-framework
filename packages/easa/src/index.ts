@@ -18,13 +18,10 @@ _warn(
   'Please migrate to @agentic-eng/agent. See https://www.npmjs.com/package/@agentic-eng/agent'
 );
 
-// Core
+// Core — re-export everything from @agentic-eng/agent (which itself re-exports from modular packages)
 export {
   Agent,
-  FlatFileMemoryProvider,
   ToolRegistry,
-  ConsoleEventEmitter,
-  NoopEventEmitter,
   EasaError,
   ProviderError,
   AgentConfigError,
@@ -35,8 +32,9 @@ export {
 export type {
   AgentConfig,
   InvokeResult,
-  LLMProvider,
+  LlmProvider,
   MemoryProvider,
+  ObservabilityProvider,
   Tool,
   ToolInputSchema,
   ToolDefinition,
@@ -44,7 +42,6 @@ export type {
   ToolResult,
   EventType,
   AgentEvent,
-  AgentEventEmitter,
   Role,
   Message,
   ChatOptions,
@@ -58,3 +55,7 @@ export type {
   ReasoningTrace,
   InvokeOptions,
 } from '@agentic-eng/agent';
+
+// Re-export concrete implementations from their new packages
+export { FlatFileMemory } from '@agentic-eng/memory';
+export { ConsoleObserver, NoopObserver } from '@agentic-eng/observability';

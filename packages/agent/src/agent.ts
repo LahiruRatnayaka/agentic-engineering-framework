@@ -3,12 +3,7 @@ import {
   MaxIterationsError,
   ProviderError,
   ReasoningParseError,
-} from './errors';
-import type { AgentEvent, AgentEventEmitter } from './events';
-import { NoopEventEmitter } from './events';
-import type { MemoryProvider } from './memory';
-import type { LLMProvider } from './provider';
-import type { Tool, ToolRegistry } from './tool';
+} from '@agentic-eng/core';
 import type {
   ChatChunk,
   ChatOptions,
@@ -20,7 +15,11 @@ import type {
   ReasoningTrace,
   ToolCallRequest,
   ToolResult,
-} from './types';
+} from '@agentic-eng/core';
+import type { AgentEvent, LlmProvider, MemoryProvider, ObservabilityProvider } from '@agentic-eng/provider';
+import type { Tool } from '@agentic-eng/tool';
+import { ToolRegistry } from '@agentic-eng/tool';
+import { NoopObserver } from '@agentic-eng/observability';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -83,7 +82,7 @@ export interface AgentConfig {
   description?: string;
 
   /** The LLM provider this agent uses for reasoning. */
-  provider: LLMProvider;
+  provider: LlmProvider;
 
   /** System prompt that defines the agent's behavior and personality. */
   systemPrompt?: string;
@@ -100,8 +99,8 @@ export interface AgentConfig {
   /** Optional tool registry containing tools the agent can use. */
   tools?: ToolRegistry;
 
-  /** Optional event emitter for observability (console logging, OTEL, etc.). */
-  emitter?: AgentEventEmitter;
+  /** Optional observability provider for event emission (console logging, OTEL, etc.). */
+  observability?: ObservabilityProvider;
 }
 
 /**
@@ -148,13 +147,13 @@ export class Agent {
   readonly name: string;
   readonly description?: string;
 
-  private readonly provider: LLMProvider;
+  private readonly provider: LlmProvider;
   private readonly systemPrompt?: string;
   private readonly defaultOptions?: ChatOptions;
   private readonly maxIterations: number;
   private readonly memory?: MemoryProvider;
   private readonly tools?: ToolRegistry;
-  private readonly emitter: AgentEventEmitter;
+  private readonly emitter: ObservabilityProvider;
   private messages: Message[] = [];
 
   constructor(config: AgentConfig) {
@@ -174,7 +173,7 @@ export class Agent {
     this.maxIterations = config.maxIterations ?? DEFAULT_MAX_ITERATIONS;
     this.memory = config.memory;
     this.tools = config.tools;
-    this.emitter = config.emitter ?? new NoopEventEmitter();
+    this.emitter = config.observability ?? new NoopObserver();
   }
 
   /**

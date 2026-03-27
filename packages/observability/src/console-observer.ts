@@ -1,69 +1,21 @@
-/**
- * All lifecycle event types emitted by the agent.
- * Follows OTEL-like span conventions: start/end pairs for each phase.
- */
-export type EventType =
-  | 'agent.invoke.start'
-  | 'agent.invoke.end'
-  | 'agent.invoke_stream.start'
-  | 'agent.invoke_stream.end'
-  | 'agent.iteration.start'
-  | 'agent.iteration.end'
-  | 'llm.call.start'
-  | 'llm.call.end'
-  | 'tool.call.start'
-  | 'tool.call.end'
-  | 'tool.schema.inject'
-  | 'tool.not_found'
-  | 'memory.store'
-  | 'agent.error';
+import type { AgentEvent, EventType, ObservabilityProvider } from '@agentic-eng/provider';
 
 /**
- * Base event structure emitted at every lifecycle point.
- * Designed to be compatible with OTEL span events.
- */
-export interface AgentEvent {
-  /** The event type. */
-  type: EventType;
-
-  /** ISO 8601 timestamp when the event occurred. */
-  timestamp: string;
-
-  /** Name of the agent that emitted this event. */
-  agentName: string;
-
-  /** Event-specific payload. */
-  data: Record<string, unknown>;
-}
-
-/**
- * Interface for receiving agent lifecycle events.
- *
- * Consumers implement this to observe what the agent is doing.
- * The default `ConsoleEventEmitter` logs to stdout.
- * A future OTEL implementation would export spans/events to a collector.
- */
-export interface AgentEventEmitter {
-  /**
-   * Called for every lifecycle event during agent execution.
-   */
-  emit(event: AgentEvent): void;
-}
-
-/**
- * Default event emitter that logs events to the console.
+ * Event observer that logs events to the console.
  * Useful for development and debugging.
  *
  * @example
  * ```typescript
+ * import { ConsoleObserver } from '@agentic-eng/observability';
+ *
  * const agent = new Agent({
  *   name: 'my-agent',
  *   provider: myProvider,
- *   emitter: new ConsoleEventEmitter(),
+ *   observability: new ConsoleObserver(),
  * });
  * ```
  */
-export class ConsoleEventEmitter implements AgentEventEmitter {
+export class ConsoleObserver implements ObservabilityProvider {
   private readonly prefix: string;
 
   constructor(options?: { prefix?: string }) {
@@ -137,14 +89,5 @@ export class ConsoleEventEmitter implements AgentEventEmitter {
   private truncate(str: string | undefined, max = 80): string {
     if (!str) return '';
     return str.length > max ? str.substring(0, max) + '…' : str;
-  }
-}
-
-/**
- * A no-op emitter that discards all events. Used internally when no emitter is configured.
- */
-export class NoopEventEmitter implements AgentEventEmitter {
-  emit(_event: AgentEvent): void {
-    // intentionally empty
   }
 }

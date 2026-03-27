@@ -1,21 +1,23 @@
 {
-  "name": "@agentic-eng/easa",
-  "version": "0.1.1",
-  "description": "EASA — Easy Agent System Architecture: A Minimal TypeScript Framework for Agent Systems.",
+  "name": "@agentic-eng/observability",
+  "version": "0.2.0",
+  "description": "Observability implementations for the EASA framework.",
   "keywords": [
     "agent",
     "ai",
     "framework",
     "typescript",
     "llm",
-    "easa"
+    "easa",
+    "observability",
+    "telemetry"
   ],
   "license": "MIT",
   "author": "EASA Contributors",
   "repository": {
     "type": "git",
     "url": "https://github.com/easa-framework/easa.git",
-    "directory": "packages/easa"
+    "directory": "packages/observability"
   },
   "type": "module",
   "main": "./dist/index.cjs",
@@ -49,11 +51,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@agentic-eng/agent": "workspace:*",
-    "@agentic-eng/memory": "workspace:*",
-    "@agentic-eng/observability": "workspace:*"
+    "@agentic-eng/core": "workspace:*",
+    "@agentic-eng/provider": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^25.5.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0"
   },

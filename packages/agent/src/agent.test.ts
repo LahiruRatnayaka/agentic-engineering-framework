@@ -2,12 +2,11 @@ import { describe, it, expect, vi } from 'vitest';
 
 import { Agent } from './agent';
 import type { AgentConfig } from './agent';
-import { AgentConfigError, MaxIterationsError, ProviderError, ReasoningParseError } from './errors';
-import type { MemoryProvider } from './memory';
-import type { LLMProvider } from './provider';
-import type { Tool } from './tool';
-import { ToolRegistry } from './tool';
-import type { ChatChunk, ChatResponse, LLMReasoningResponse, Message } from './types';
+import { AgentConfigError, MaxIterationsError, ProviderError, ReasoningParseError } from '@agentic-eng/core';
+import type { LlmProvider, MemoryProvider, AgentEvent } from '@agentic-eng/provider';
+import type { Tool } from '@agentic-eng/tool';
+import { ToolRegistry } from '@agentic-eng/tool';
+import type { ChatChunk, ChatResponse, LLMReasoningResponse, Message } from '@agentic-eng/core';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -29,7 +28,7 @@ function reasoningJson(overrides?: Partial<LLMReasoningResponse>): string {
 /**
  * Creates a mock LLM provider that returns structured reasoning JSON.
  */
-function createMockProvider(overrides?: Partial<LLMProvider>): LLMProvider {
+function createMockProvider(overrides?: Partial<LlmProvider>): LlmProvider {
   return {
     chat: vi.fn(async (_messages: Message[]): Promise<ChatResponse> => ({
       message: { role: 'assistant', content: reasoningJson() },
@@ -81,7 +80,7 @@ describe('Agent', () => {
 
     it('should throw AgentConfigError if provider is missing', () => {
       expect(
-        () => new Agent({ name: 'test', provider: undefined as unknown as LLMProvider }),
+        () => new Agent({ name: 'test', provider: undefined as unknown as LlmProvider }),
       ).toThrow('Agent requires an LLM provider.');
     });
   });
@@ -842,17 +841,17 @@ describe('ToolRegistry', () => {
 
 describe('Event emission', () => {
   function createCollectorEmitter() {
-    const events: import('./events').AgentEvent[] = [];
+    const events: AgentEvent[] = [];
     return {
-      emitter: { emit: (e: import('./events').AgentEvent) => events.push(e) },
+      observability: { emit: (e: AgentEvent) => events.push(e) },
       events,
     };
   }
 
   it('should emit agent.invoke.start and agent.invoke.end for a simple invoke', async () => {
-    const { emitter, events } = createCollectorEmitter();
+    const { observability, events } = createCollectorEmitter();
     const provider = createMockProvider();
-    const agent = new Agent(createAgentConfig({ provider, emitter }));
+    const agent = new Agent(createAgentConfig({ provider, observability }));
 
     await agent.invoke('Hello');
 
@@ -871,9 +870,9 @@ describe('Event emission', () => {
   });
 
   it('should emit iteration and LLM lifecycle events', async () => {
-    const { emitter, events } = createCollectorEmitter();
+    const { observability, events } = createCollectorEmitter();
     const provider = createMockProvider();
-    const agent = new Agent(createAgentConfig({ provider, emitter }));
+    const agent = new Agent(createAgentConfig({ provider, observability }));
 
     await agent.invoke('Hi');
 
@@ -889,7 +888,7 @@ describe('Event emission', () => {
   });
 
   it('should emit multiple iteration events for multi-step reasoning', async () => {
-    const { emitter, events } = createCollectorEmitter();
+    const { observability, events } = createCollectorEmitter();
     let callCount = 0;
     const provider = createMockProvider({
       chat: vi.fn(async (): Promise<ChatResponse> => {
@@ -911,7 +910,7 @@ describe('Event emission', () => {
       }),
     });
 
-    const agent = new Agent(createAgentConfig({ provider, emitter }));
+    const agent = new Agent(createAgentConfig({ provider, observability }));
     await agent.invoke('Complex task');
 
     const iterStarts = events.filter((e) => e.type === 'agent.iteration.start');
@@ -923,7 +922,7 @@ describe('Event emission', () => {
   });
 
   it('should emit tool events when a tool is called', async () => {
-    const { emitter, events } = createCollectorEmitter();
+    const { observability, events } = createCollectorEmitter();
     const tools = new ToolRegistry();
     tools.register({
       definition: {
@@ -959,7 +958,7 @@ describe('Event emission', () => {
       }),
     });
 
-    const agent = new Agent(createAgentConfig({ provider, tools, emitter }));
+    const agent = new Agent(createAgentConfig({ provider, tools, observability }));
     await agent.invoke('What is 6*7?');
 
     const types = events.map((e) => e.type);
@@ -974,7 +973,7 @@ describe('Event emission', () => {
   });
 
   it('should emit tool.not_found when tool does not exist', async () => {
-    const { emitter, events } = createCollectorEmitter();
+    const { observability, events } = createCollectorEmitter();
     let callCount = 0;
     const provider = createMockProvider({
       chat: vi.fn(async (): Promise<ChatResponse> => {
@@ -1001,7 +1000,7 @@ describe('Event emission', () => {
     });
 
     const tools = new ToolRegistry();
-    const agent = new Agent(createAgentConfig({ provider, tools, emitter }));
+    const agent = new Agent(createAgentConfig({ provider, tools, observability }));
     await agent.invoke('Search');
 
     const types = events.map((e) => e.type);
@@ -1010,7 +1009,7 @@ describe('Event emission', () => {
   });
 
   it('should emit memory.store event when memory is persisted', async () => {
-    const { emitter, events } = createCollectorEmitter();
+    const { observability, events } = createCollectorEmitter();
     const memoryProvider: MemoryProvider = {
       store: vi.fn(async () => {}),
       retrieve: vi.fn(async () => []),
@@ -1028,7 +1027,7 @@ describe('Event emission', () => {
       })),
     });
 
-    const agent = new Agent(createAgentConfig({ provider, memory: memoryProvider, emitter }));
+    const agent = new Agent(createAgentConfig({ provider, memory: memoryProvider, observability }));
     await agent.invoke('Remember this');
 
     const types = events.map((e) => e.type);
@@ -1037,12 +1036,12 @@ describe('Event emission', () => {
   });
 
   it('should emit agent.error when provider fails', async () => {
-    const { emitter, events } = createCollectorEmitter();
+    const { observability, events } = createCollectorEmitter();
     const provider = createMockProvider({
       chat: vi.fn(async () => { throw new Error('Network fail'); }),
     });
 
-    const agent = new Agent(createAgentConfig({ provider, emitter }));
+    const agent = new Agent(createAgentConfig({ provider, observability }));
 
     await expect(agent.invoke('Hi')).rejects.toThrow();
 
@@ -1051,8 +1050,8 @@ describe('Event emission', () => {
   });
 
   it('should emit stream events for invokeStream', async () => {
-    const { emitter, events } = createCollectorEmitter();
-    const agent = new Agent(createAgentConfig({ emitter }));
+    const { observability, events } = createCollectorEmitter();
+    const agent = new Agent(createAgentConfig({ observability }));
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for await (const _chunk of agent.invokeStream('Hello')) {
@@ -1068,7 +1067,7 @@ describe('Event emission', () => {
   });
 
   it('should emit error + invoke.end events when max iterations exceeded', async () => {
-    const { emitter, events } = createCollectorEmitter();
+    const { observability, events } = createCollectorEmitter();
     const provider = createMockProvider({
       chat: vi.fn(async (): Promise<ChatResponse> => ({
         message: {
@@ -1078,7 +1077,7 @@ describe('Event emission', () => {
       })),
     });
 
-    const agent = new Agent(createAgentConfig({ provider, emitter, maxIterations: 2 }));
+    const agent = new Agent(createAgentConfig({ provider, observability, maxIterations: 2 }));
     await expect(agent.invoke('Task')).rejects.toThrow(MaxIterationsError);
 
     const types = events.map((e) => e.type);

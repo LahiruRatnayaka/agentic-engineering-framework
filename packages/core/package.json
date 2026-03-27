@@ -1,21 +1,22 @@
 {
-  "name": "@agentic-eng/easa",
-  "version": "0.1.1",
-  "description": "EASA — Easy Agent System Architecture: A Minimal TypeScript Framework for Agent Systems.",
+  "name": "@agentic-eng/core",
+  "version": "0.2.0",
+  "description": "Shared types, enums, and errors for the EASA framework.",
   "keywords": [
     "agent",
     "ai",
     "framework",
     "typescript",
     "llm",
-    "easa"
+    "easa",
+    "core"
   ],
   "license": "MIT",
   "author": "EASA Contributors",
   "repository": {
     "type": "git",
     "url": "https://github.com/easa-framework/easa.git",
-    "directory": "packages/easa"
+    "directory": "packages/core"
   },
   "type": "module",
   "main": "./dist/index.cjs",
@@ -47,11 +48,6 @@
     "dev": "tsup --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
     "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@agentic-eng/agent": "workspace:*",
-    "@agentic-eng/memory": "workspace:*",
-    "@agentic-eng/observability": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

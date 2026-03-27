@@ -1,6 +1,6 @@
 # @agentic-eng/agent
 
-> Core agent primitives and runtime for [EASA](https://github.com/easa-framework/easa) — Easy Agent System Architecture.
+> Core agent class and reasoning loop for [EASA](https://github.com/easa-framework/easa) — Easy Agent System Architecture.
 
 [![npm](https://img.shields.io/npm/v/@agentic-eng/agent)](https://www.npmjs.com/package/@agentic-eng/agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -22,9 +22,9 @@ pnpm add @agentic-eng/agent
 EASA ships zero LLM dependencies — you bring your own backend:
 
 ```typescript
-import type { LLMProvider, Message, ChatResponse, ChatChunk } from '@agentic-eng/agent';
+import type { LlmProvider, Message, ChatResponse, ChatChunk } from '@agentic-eng/agent';
 
-const myProvider: LLMProvider = {
+const myProvider: LlmProvider = {
   async chat(messages: Message[]): Promise<ChatResponse> {
     // Call OpenAI, Anthropic, local model, etc.
     const response = await callYourLLM(messages);
@@ -125,12 +125,12 @@ The agent uses a **hybrid schema approach** to save tokens:
 ## Memory
 
 ```typescript
-import { FlatFileMemoryProvider } from '@agentic-eng/agent';
+import { FlatFileMemory } from '@agentic-eng/memory';
 
 const agent = new Agent({
   name: 'assistant',
   provider: myProvider,
-  memory: new FlatFileMemoryProvider('./agent-memory'),
+  memory: new FlatFileMemory({ directory: './agent-memory' }),
 });
 ```
 
@@ -150,12 +150,12 @@ const customMemory: MemoryProvider = {
 OTEL-aligned lifecycle events for debugging and monitoring:
 
 ```typescript
-import { ConsoleEventEmitter } from '@agentic-eng/agent';
+import { ConsoleObserver } from '@agentic-eng/observability';
 
 const agent = new Agent({
   name: 'assistant',
   provider: myProvider,
-  emitter: new ConsoleEventEmitter(),
+  observability: new ConsoleObserver(),
 });
 ```
 
@@ -172,12 +172,12 @@ Console output:
 [EASA] 14:23:06.202Z ■ INVOKE  agent="assistant" iterations=2 completed=true
 ```
 
-Implement `AgentEventEmitter` for OTEL, Datadog, or any custom backend:
+Implement `ObservabilityProvider` for OTEL, Datadog, or any custom backend:
 
 ```typescript
-import type { AgentEventEmitter, AgentEvent } from '@agentic-eng/agent';
+import type { ObservabilityProvider, AgentEvent } from '@agentic-eng/provider';
 
-const otelEmitter: AgentEventEmitter = {
+const otelObserver: ObservabilityProvider = {
   emit(event: AgentEvent) {
     tracer.startSpan(event.type, { attributes: event.data });
   },
@@ -240,15 +240,15 @@ try {
 
 ```typescript
 interface AgentConfig {
-  name: string;                  // Required — unique agent name
-  provider: LLMProvider;         // Required — your LLM backend
-  description?: string;          // What this agent does
-  systemPrompt?: string;         // Custom system prompt
-  defaultOptions?: ChatOptions;  // Default LLM options (temperature, maxTokens, etc.)
-  maxIterations?: number;        // Max reasoning iterations (default: 5)
-  memory?: MemoryProvider;       // Knowledge persistence
-  tools?: ToolRegistry;          // Available tools
-  emitter?: AgentEventEmitter;   // Event emitter for observability
+  name: string;                       // Required — unique agent name
+  provider: LlmProvider;              // Required — your LLM backend
+  description?: string;               // What this agent does
+  systemPrompt?: string;              // Custom system prompt
+  defaultOptions?: ChatOptions;       // Default LLM options (temperature, maxTokens, etc.)
+  maxIterations?: number;             // Max reasoning iterations (default: 5)
+  memory?: MemoryProvider;            // Knowledge persistence
+  tools?: ToolRegistry;               // Available tools
+  observability?: ObservabilityProvider; // Event observer for observability
 }
 ```
 
@@ -273,16 +273,13 @@ interface InvokeResult {
 ## Full Example
 
 ```typescript
-import {
-  Agent,
-  ToolRegistry,
-  FlatFileMemoryProvider,
-  ConsoleEventEmitter,
-} from '@agentic-eng/agent';
-import type { Tool, LLMProvider } from '@agentic-eng/agent';
+import { Agent, ToolRegistry } from '@agentic-eng/agent';
+import type { Tool, LlmProvider } from '@agentic-eng/agent';
+import { FlatFileMemory } from '@agentic-eng/memory';
+import { ConsoleObserver } from '@agentic-eng/observability';
 
 // 1. Provider
-const provider: LLMProvider = { /* your implementation */ };
+const provider: LlmProvider = { /* your implementation */ };
 
 // 2. Tools
 const weatherTool: Tool = {
@@ -310,8 +307,8 @@ const agent = new Agent({
   provider,
   systemPrompt: 'You are a helpful travel planning assistant.',
   tools,
-  memory: new FlatFileMemoryProvider('./memory'),
-  emitter: new ConsoleEventEmitter(),
+  memory: new FlatFileMemory({ directory: './memory' }),
+  observability: new ConsoleObserver(),
   maxIterations: 10,
 });
 

@@ -1,25 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import type { MemoryEntry } from './types';
-
-/**
- * Interface for persisting agent knowledge across invocations.
- *
- * Consumers can implement custom backends (database, vector store, etc.)
- * or use the built-in `FlatFileMemoryProvider` for file-based storage.
- */
-export interface MemoryProvider {
-  /**
-   * Store a piece of knowledge.
-   */
-  store(agentName: string, entry: MemoryEntry): Promise<void>;
-
-  /**
-   * Retrieve all stored knowledge for a given agent.
-   */
-  retrieve(agentName: string): Promise<MemoryEntry[]>;
-}
+import type { MemoryEntry } from '@agentic-eng/core';
+import type { MemoryProvider } from '@agentic-eng/provider';
 
 /**
  * Flat-file memory provider that persists agent knowledge as KNL DATA blocks.
@@ -29,16 +12,17 @@ export interface MemoryProvider {
  *
  * @example
  * ```typescript
- * const memory = new FlatFileMemoryProvider('/path/to/memory');
- * const agent = new Agent({
- *   name: 'my-agent',
- *   provider: myProvider,
- *   memory,
- * });
+ * import { FlatFileMemory } from '@agentic-eng/memory';
+ *
+ * const memory = new FlatFileMemory({ directory: './agent-memory' });
  * ```
  */
-export class FlatFileMemoryProvider implements MemoryProvider {
-  constructor(private readonly directory: string) {}
+export class FlatFileMemory implements MemoryProvider {
+  private readonly directory: string;
+
+  constructor(config: { directory: string }) {
+    this.directory = config.directory;
+  }
 
   async store(agentName: string, entry: MemoryEntry): Promise<void> {
     await fs.promises.mkdir(this.directory, { recursive: true });

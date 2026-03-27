@@ -1,4 +1,4 @@
-import type { ChatChunk, ChatOptions, ChatResponse, Message } from './types';
+import type { ChatChunk, ChatOptions, ChatResponse, Message } from '@agentic-eng/core';
 
 /**
  * Interface that all LLM providers must implement.
@@ -8,7 +8,7 @@ import type { ChatChunk, ChatOptions, ChatResponse, Message } from './types';
  *
  * @example
  * ```typescript
- * const myProvider: LLMProvider = {
+ * const myProvider: LlmProvider = {
  *   async chat(messages, options) {
  *     const res = await fetch('https://api.openai.com/v1/chat/completions', {
  *       method: 'POST',
@@ -24,7 +24,7 @@ import type { ChatChunk, ChatOptions, ChatResponse, Message } from './types';
  * };
  * ```
  */
-export interface LLMProvider {
+export interface LlmProvider {
   /**
    * Send messages to the LLM and receive a complete response.
    */

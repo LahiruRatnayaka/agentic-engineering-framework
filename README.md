@@ -16,26 +16,43 @@ EASA provides the fundamental building blocks for creating AI agents that can **
 - **Memory** — Pluggable persistence via KNL (Knowledge Notation Language) flat files or custom backends
 - **Event Emission** — OTEL-aligned lifecycle events for observability and debugging
 - **Dual Output** — ESM + CJS with full TypeScript declarations
-- **Zero LLM Lock-in** — Implement the `LLMProvider` interface for any backend
+- **Zero LLM Lock-in** — Implement the `LlmProvider` interface for any backend
+- **Modular** — Pick only the packages you need: core, provider, tool, memory, observability
+
+## Packages
+
+| Package | Description |
+| --- | --- |
+| [`@agentic-eng/core`](./packages/core) | Shared types, enums, and error classes |
+| [`@agentic-eng/provider`](./packages/provider) | Interface-only contracts (LLM, Memory, Observability) |
+| [`@agentic-eng/tool`](./packages/tool) | Tool interface and `ToolRegistry` |
+| [`@agentic-eng/memory`](./packages/memory) | Memory implementations (`FlatFileMemory`) |
+| [`@agentic-eng/observability`](./packages/observability) | Observability implementations (`ConsoleObserver`, `NoopObserver`) |
+| [`@agentic-eng/agent`](./packages/agent) | Core `Agent` class and reasoning loop (re-exports from the above) |
+| ~~`@agentic-eng/easa`~~ | **Deprecated** — will be removed after 15 April 2026 |
 
 ## Installation
 
 ```bash
+# All-in-one (agent re-exports core types, provider interfaces, and tool registry)
 npm install @agentic-eng/agent
-# or
-pnpm add @agentic-eng/agent
-```
 
-> **Note:** The `@agentic-eng/easa` umbrella package is deprecated and will be removed after 15 April 2026. Please use `@agentic-eng/agent` directly.
+# Optional: concrete implementations
+npm install @agentic-eng/memory          # FlatFileMemory
+npm install @agentic-eng/observability    # ConsoleObserver, NoopObserver
+
+# Or pick individual packages for maximum control
+npm install @agentic-eng/core @agentic-eng/provider @agentic-eng/tool
+```
 
 ## Quick Start
 
 ### 1. Implement an LLM Provider
 
 ```typescript
-import type { LLMProvider, Message, ChatResponse, ChatChunk } from '@agentic-eng/agent';
+import type { LlmProvider, Message, ChatResponse, ChatChunk } from '@agentic-eng/agent';
 
-const myProvider: LLMProvider = {
+const myProvider: LlmProvider = {
   async chat(messages: Message[]): Promise<ChatResponse> {
     // Call your LLM (OpenAI, Anthropic, local model, etc.)
     const response = await callYourLLM(messages);
@@ -168,12 +185,12 @@ The agent can persist knowledge across invocations. The LLM decides *when* to st
 ### Using the Built-in Flat File Provider
 
 ```typescript
-import { FlatFileMemoryProvider } from '@agentic-eng/agent';
+import { FlatFileMemory } from '@agentic-eng/memory';
 
 const agent = new Agent({
   name: 'assistant',
   provider: myProvider,
-  memory: new FlatFileMemoryProvider('./agent-memory'),
+  memory: new FlatFileMemory({ directory: './agent-memory' }),
 });
 ```
 
@@ -214,12 +231,12 @@ Every lifecycle point emits a structured event, designed for future OTEL integra
 ### Console Logging
 
 ```typescript
-import { ConsoleEventEmitter } from '@agentic-eng/agent';
+import { ConsoleObserver } from '@agentic-eng/observability';
 
 const agent = new Agent({
   name: 'assistant',
   provider: myProvider,
-  emitter: new ConsoleEventEmitter(),
+  observability: new ConsoleObserver(),
 });
 ```
 
@@ -238,14 +255,14 @@ Output:
 [EASA] 14:23:06.202Z ■ INVOKE  agent="assistant" iterations=2 completed=true
 ```
 
-### Custom Emitter
+### Custom Observer
 
-Implement the `AgentEventEmitter` interface for OTEL, Datadog, or any backend:
+Implement the `ObservabilityProvider` interface for OTEL, Datadog, or any backend:
 
 ```typescript
-import type { AgentEventEmitter, AgentEvent } from '@agentic-eng/agent';
+import type { ObservabilityProvider, AgentEvent } from '@agentic-eng/provider';
 
-const otelEmitter: AgentEventEmitter = {
+const otelObserver: ObservabilityProvider = {
   emit(event: AgentEvent) {
     // Map to OTEL spans, send to collector, etc.
     tracer.startSpan(event.type, { attributes: event.data });
@@ -305,16 +322,13 @@ try {
 ## Full Example
 
 ```typescript
-import {
-  Agent,
-  ToolRegistry,
-  FlatFileMemoryProvider,
-  ConsoleEventEmitter,
-} from '@agentic-eng/agent';
-import type { Tool, LLMProvider } from '@agentic-eng/agent';
+import { Agent, ToolRegistry } from '@agentic-eng/agent';
+import type { Tool, LlmProvider } from '@agentic-eng/agent';
+import { FlatFileMemory } from '@agentic-eng/memory';
+import { ConsoleObserver } from '@agentic-eng/observability';
 
 // 1. Provider
-const provider: LLMProvider = { /* your implementation */ };
+const provider: LlmProvider = { /* your implementation */ };
 
 // 2. Tools
 const weatherTool: Tool = {
@@ -342,8 +356,8 @@ const agent = new Agent({
   provider,
   systemPrompt: 'You are a helpful travel planning assistant.',
   tools,
-  memory: new FlatFileMemoryProvider('./memory'),
-  emitter: new ConsoleEventEmitter(),
+  memory: new FlatFileMemory({ directory: './memory' }),
+  observability: new ConsoleObserver(),
   maxIterations: 10,
 });
 
@@ -384,20 +398,17 @@ console.log(result.content);
 ```
 easa/
 ├── packages/
-│   ├── agent/                   # @agentic-eng/agent
+│   ├── core/                    # @agentic-eng/core — types + errors
+│   ├── provider/                # @agentic-eng/provider — interfaces only
+│   ├── tool/                    # @agentic-eng/tool — Tool + ToolRegistry
+│   ├── memory/                  # @agentic-eng/memory — FlatFileMemory
+│   ├── observability/           # @agentic-eng/observability — ConsoleObserver
+│   ├── agent/                   # @agentic-eng/agent — Agent class + reasoning loop
 │   │   └── src/
 │   │       ├── agent.ts         # Agent class + reasoning loop
-│   │       ├── provider.ts      # LLMProvider interface
-│   │       ├── types.ts         # All type definitions
-│   │       ├── errors.ts        # Error hierarchy
-│   │       ├── tool.ts          # Tool interface + ToolRegistry
-│   │       ├── memory.ts        # MemoryProvider + FlatFileMemoryProvider
-│   │       ├── events.ts        # Event system (emitter + types)
-│   │       ├── index.ts         # Public API exports
+│   │       ├── index.ts         # Public API (re-exports from above packages)
 │   │       └── agent.test.ts    # 48 tests
 │   └── easa/                    # @agentic-eng/easa (DEPRECATED)
-│       └── src/
-│           └── index.ts         # Re-exports from @agentic-eng/agent
 ├── package.json
 ├── tsconfig.json
 ├── vitest.config.ts

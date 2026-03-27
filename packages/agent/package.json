@@ -1,13 +1,14 @@
 {
   "name": "@agentic-eng/agent",
-  "version": "0.1.1",
-  "description": "Core agent primitives and runtime for EASA — Easy Agent System Architecture.",
+  "version": "0.2.0",
+  "description": "Core agent class and reasoning loop for the EASA framework.",
   "keywords": [
     "agent",
     "ai",
     "framework",
     "typescript",
-    "llm"
+    "llm",
+    "easa"
   ],
   "license": "MIT",
   "author": "EASA Contributors",
@@ -47,7 +48,26 @@
     "clean": "rm -rf dist *.tsbuildinfo",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@agentic-eng/core": "workspace:*",
+    "@agentic-eng/provider": "workspace:*",
+    "@agentic-eng/tool": "workspace:*"
+  },
+  "peerDependencies": {
+    "@agentic-eng/memory": "workspace:*",
+    "@agentic-eng/observability": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@agentic-eng/memory": {
+      "optional": true
+    },
+    "@agentic-eng/observability": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@agentic-eng/memory": "workspace:*",
+    "@agentic-eng/observability": "workspace:*",
     "@types/node": "^25.5.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0"

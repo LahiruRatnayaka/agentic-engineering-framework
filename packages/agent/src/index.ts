@@ -1,17 +1,15 @@
+/**
+ * @agentic-eng/agent
+ *
+ * Core agent class and reasoning loop for the EASA framework.
+ * This package re-exports key types from its dependencies for convenience.
+ */
+
+// Agent
 export { Agent } from './agent';
 export type { AgentConfig, InvokeResult } from './agent';
 
-export type { LLMProvider } from './provider';
-
-export type { MemoryProvider } from './memory';
-export { FlatFileMemoryProvider } from './memory';
-
-export type { Tool } from './tool';
-export { ToolRegistry } from './tool';
-
-export type { EventType, AgentEvent, AgentEventEmitter } from './events';
-export { ConsoleEventEmitter, NoopEventEmitter } from './events';
-
+// Re-export from @agentic-eng/core
 export type {
   Role,
   Message,
@@ -29,7 +27,7 @@ export type {
   ToolDefinition,
   ToolCallRequest,
   ToolResult,
-} from './types';
+} from '@agentic-eng/core';
 
 export {
   EasaError,
@@ -38,4 +36,11 @@ export {
   MaxIterationsError,
   ReasoningParseError,
   ToolExecutionError,
-} from './errors';
+} from '@agentic-eng/core';
+
+// Re-export from @agentic-eng/provider
+export type { LlmProvider, MemoryProvider, ObservabilityProvider, EventType, AgentEvent } from '@agentic-eng/provider';
+
+// Re-export from @agentic-eng/tool
+export type { Tool } from '@agentic-eng/tool';
+export { ToolRegistry } from '@agentic-eng/tool';
