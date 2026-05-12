@@ -1,6 +1,6 @@
 {
   "name": "@agentic-eng/agent",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Core agent class and orchestrator for the EASA framework.",
   "keywords": [
     "agent",
