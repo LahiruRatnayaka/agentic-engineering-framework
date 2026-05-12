@@ -12,7 +12,7 @@
 
 The Agentic Engineering Framework is a minimal, type-safe TypeScript framework for building LLM-powered agent systems. It provides the building blocks for agents that can **reason**, **use tools**, **persist knowledge**, and **emit observable events** — all with a clean, composable API and **zero LLM lock-in**.
 
-![Agentic Engineering Framework Architecture](./assets/architecture.png)
+![Agentic Engineering Framework Architecture](https://raw.githubusercontent.com/LahiruRatnayaka/agentic-engineering-framework/main/packages/agent/assets/architecture.png)
 
 ### Package Ecosystem
 
