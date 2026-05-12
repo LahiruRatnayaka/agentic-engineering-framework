@@ -1,4 +1,4 @@
-# EASA — Easy Agent System Architecture
+# Agentic Engineering Framework
 
 > A minimal, type-safe TypeScript framework for building LLM-powered agent systems.
 
@@ -7,7 +7,7 @@
 
 ## Overview
 
-EASA provides the fundamental building blocks for creating AI agents that can **reason**, **use tools**, **persist knowledge**, and **emit observable events** — all with a clean, composable API. It ships zero LLM dependencies: you bring your own provider.
+The Agentic Engineering Framework provides the fundamental building blocks for creating AI agents that can **reason**, **use tools**, **persist knowledge**, and **emit observable events** — all with a clean, composable API. It ships zero LLM dependencies: you bring your own provider.
 
 ### Key Features
 
@@ -51,16 +51,16 @@ npm install @agentic-eng/core @agentic-eng/provider @agentic-eng/tool
 
 ```typescript
 import type { LlmProvider } from '@agentic-eng/provider';
-import type { Message, ChatResponse, ChatChunk } from '@agentic-eng/core';
+import type { Message, Completion, CompletionChunk } from '@agentic-eng/core';
 
 const myProvider: LlmProvider = {
-  async chat(messages: Message[]): Promise<ChatResponse> {
+  async chat(messages: Message[]): Promise<Completion> {
     // Call your LLM (OpenAI, Anthropic, local model, etc.)
     const response = await callYourLLM(messages);
     return { message: { role: 'assistant', content: response.text } };
   },
 
-  async *chatStream(messages: Message[]): AsyncIterable<ChatChunk> {
+  async *chatStream(messages: Message[]): AsyncIterable<CompletionChunk> {
     // Streaming implementation
     for await (const chunk of streamYourLLM(messages)) {
       yield { delta: chunk.text, done: chunk.finished };
@@ -244,16 +244,16 @@ const agent = new Agent({
 Output:
 
 ```
-[EASA] 14:23:05.123Z ▶ INVOKE  agent="assistant" prompt="What is 42 × 17?"
-[EASA] 14:23:05.124Z ↻ ITER    iteration=1/5
-[EASA] 14:23:05.125Z → LLM     messages=3
-[EASA] 14:23:05.830Z ← LLM     tokens=142
-[EASA] 14:23:05.831Z ⚙ TOOL    tool="calculator"
-[EASA] 14:23:05.832Z ⚙ TOOL✓   tool="calculator" success=true
-[EASA] 14:23:05.833Z ✓ ITER    iteration=1 action="tool_call"
-[EASA] 14:23:06.200Z ← LLM     tokens=89
-[EASA] 14:23:06.201Z ✓ ITER    iteration=2 action="done"
-[EASA] 14:23:06.202Z ■ INVOKE  agent="assistant" iterations=2 completed=true
+[AEF] 14:23:05.123Z INVOKE:START agent="assistant" prompt="What is 42 × 17?"
+[AEF] 14:23:05.124Z ITER:START iteration=1/5
+[AEF] 14:23:05.125Z LLM:START messages=3
+[AEF] 14:23:05.830Z LLM:END tokens=142
+[AEF] 14:23:05.831Z TOOL:START tool="calculator"
+[AEF] 14:23:05.832Z TOOL:END tool="calculator" success=true
+[AEF] 14:23:05.833Z ITER:END iteration=1 action="tool_call"
+[AEF] 14:23:06.200Z LLM:END tokens=89
+[AEF] 14:23:06.201Z ITER:END iteration=2 action="done"
+[AEF] 14:23:06.202Z INVOKE:END agent="assistant" iterations=2 completed=true
 ```
 
 ### Custom Observer
@@ -297,11 +297,11 @@ for await (const chunk of agent.invokeStream('Tell me a story.')) {
 
 ## Error Handling
 
-All errors extend `EasaError` for easy catching:
+All errors extend `AgenticError` for easy catching:
 
 ```typescript
 import {
-  EasaError,
+  AgenticError,
   ProviderError,
   AgentConfigError,
   MaxIterationsError,

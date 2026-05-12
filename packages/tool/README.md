@@ -1,6 +1,6 @@
 # @agentic-eng/tool
 
-> Tool interface and registry for [EASA](https://github.com/easa-framework/easa) — Easy Agent System Architecture.
+> Tool interface and registry for the [Agentic Engineering Framework](https://github.com/easa-framework/easa).
 
 [![npm](https://img.shields.io/npm/v/@agentic-eng/tool)](https://www.npmjs.com/package/@agentic-eng/tool)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -8,9 +8,9 @@
 
 ---
 
-## Part of the EASA Framework
+## Part of the Agentic Engineering Framework
 
-EASA is a minimal, type-safe TypeScript framework for building LLM-powered agent systems. It provides building blocks for agents that can **reason**, **use tools**, **persist knowledge**, and **emit observable events** — with zero LLM lock-in.
+The Agentic Engineering Framework is a minimal, type-safe TypeScript framework for building LLM-powered agent systems. It provides building blocks for agents that can **reason**, **use tools**, **persist knowledge**, and **emit observable events** — with zero LLM lock-in.
 
 | Package | Description |
 | --- | --- |

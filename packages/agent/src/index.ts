@@ -1,7 +1,7 @@
 /**
  * @agentic-eng/agent
  *
- * Core agent class and reasoning loop for the EASA framework.
+ * Core agent class and orchestrator for the EASA framework.
  * This package re-exports key types from its dependencies for convenience.
  */
 
@@ -14,7 +14,11 @@ export type {
   Role,
   Message,
   ChatOptions,
+  Completion,
+  CompletionChunk,
+  /** @deprecated Use `Completion` instead. Will be removed after 31 May 2026. */
   ChatResponse,
+  /** @deprecated Use `CompletionChunk` instead. Will be removed after 31 May 2026. */
   ChatChunk,
   TokenUsage,
   ReasoningAction,
@@ -30,6 +34,8 @@ export type {
 } from '@agentic-eng/core';
 
 export {
+  AgenticError,
+  /** @deprecated Use `AgenticError` instead. Will be removed after 31 May 2026. */
   EasaError,
   ProviderError,
   AgentConfigError,

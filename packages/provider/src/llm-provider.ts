@@ -1,4 +1,4 @@
-import type { ChatChunk, ChatOptions, ChatResponse, Message } from '@agentic-eng/core';
+import type { CompletionChunk, ChatOptions, Completion, Message } from '@agentic-eng/core';
 
 /**
  * Interface that all LLM providers must implement.
@@ -28,11 +28,11 @@ export interface LlmProvider {
   /**
    * Send messages to the LLM and receive a complete response.
    */
-  chat(messages: Message[], options?: ChatOptions): Promise<ChatResponse>;
+  chat(messages: Message[], options?: ChatOptions): Promise<Completion>;
 
   /**
    * Send messages to the LLM and receive a streaming response.
    * Yields chunks as they arrive from the provider.
    */
-  chatStream(messages: Message[], options?: ChatOptions): AsyncIterable<ChatChunk>;
+  chatStream(messages: Message[], options?: ChatOptions): AsyncIterable<CompletionChunk>;
 }

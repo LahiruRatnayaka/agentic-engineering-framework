@@ -1,6 +1,6 @@
 # @agentic-eng/core
 
-> Shared types, enums, and error classes for [EASA](https://github.com/easa-framework/easa) — Easy Agent System Architecture.
+> Shared types, enums, and error classes for the [Agentic Engineering Framework](https://github.com/easa-framework/easa).
 
 [![npm](https://img.shields.io/npm/v/@agentic-eng/core)](https://www.npmjs.com/package/@agentic-eng/core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -8,9 +8,9 @@
 
 ---
 
-## Part of the EASA Framework
+## Part of the Agentic Engineering Framework
 
-EASA is a minimal, type-safe TypeScript framework for building LLM-powered agent systems. It provides building blocks for agents that can **reason**, **use tools**, **persist knowledge**, and **emit observable events** — with zero LLM lock-in.
+The Agentic Engineering Framework is a minimal, type-safe TypeScript framework for building LLM-powered agent systems. It provides building blocks for agents that can **reason**, **use tools**, **persist knowledge**, and **emit observable events** — with zero LLM lock-in.
 
 | Package | Description |
 | --- | --- |
@@ -27,12 +27,12 @@ EASA is a minimal, type-safe TypeScript framework for building LLM-powered agent
 
 ## What This Package Does
 
-`@agentic-eng/core` is the foundation layer of EASA. It provides:
+`@agentic-eng/core` is the foundation layer of the Agentic Engineering Framework. It provides:
 
-1. **All shared TypeScript types** used across every EASA package
+1. **All shared TypeScript types** used across every framework package
 2. **All error classes** for structured error handling
 
-Every other EASA package depends on `core` — it is the single source of truth for the framework's type system.
+Every other package depends on `core` — it is the single source of truth for the framework's type system.
 
 ---
 
@@ -52,27 +52,38 @@ npm install @agentic-eng/agent    # includes core types automatically
 
 ## Types
 
-All foundational types used across EASA packages:
+All foundational types used across framework packages:
 
-- **Message types** — `Role`, `Message`, `ChatOptions`, `ChatResponse`, `ChatChunk`, `TokenUsage`
+- **Message types** — `Role`, `Message`, `ChatOptions`, `Completion`, `CompletionChunk`, `TokenUsage`
 - **Reasoning types** — `ReasoningAction`, `LLMReasoningResponse`, `IterationResult`, `ReasoningTrace`, `InvokeOptions`, `InvokeResult`
 - **Tool types** — `ToolInputSchema`, `ToolDefinition`, `ToolCallRequest`, `ToolResult`
 - **Event types** — `EventType`, `AgentEvent`
 - **Memory types** — `MemoryEntry`
 
 ```typescript
-import type { Message, ChatResponse, Tool, MemoryEntry } from '@agentic-eng/core';
+import type { Message, Completion, CompletionChunk, MemoryEntry } from '@agentic-eng/core';
 ```
+
+### Deprecated Type Aliases
+
+The following types have been renamed and will be removed after **31 May 2026**:
+
+| Old Name (deprecated) | New Name |
+| --- | --- |
+| `ChatResponse` | `Completion` |
+| `ChatChunk` | `CompletionChunk` |
+
+Both old and new names work today — update your code at your convenience before the removal date.
 
 ---
 
 ## Error Classes
 
-All custom errors extend `EasaError`, making it easy to catch any framework error:
+All custom errors extend `AgenticError`, making it easy to catch any framework error:
 
 | Error | When it's thrown |
 | --- | --- |
-| `EasaError` | Base class for all EASA errors |
+| `AgenticError` | Base class for all framework errors |
 | `ProviderError` | LLM provider call fails |
 | `AgentConfigError` | Invalid agent configuration (empty name, missing provider) |
 | `MaxIterationsError` | Reasoning loop exceeded `maxIterations` limit |
@@ -80,14 +91,14 @@ All custom errors extend `EasaError`, making it easy to catch any framework erro
 | `ToolExecutionError` | A tool's `execute()` method throws |
 
 ```typescript
-import { EasaError, ProviderError, MaxIterationsError } from '@agentic-eng/core';
+import { AgenticError, ProviderError, MaxIterationsError } from '@agentic-eng/core';
 
 try {
   await agent.invoke('Complex task');
 } catch (error) {
   if (error instanceof MaxIterationsError) {
     console.log(`Gave up after ${error.iterationsCompleted} iterations`);
-  } else if (error instanceof EasaError) {
+  } else if (error instanceof AgenticError) {
     console.log('Framework error:', error.message);
   }
 }

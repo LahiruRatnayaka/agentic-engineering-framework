@@ -6,7 +6,7 @@ import { AgentConfigError, MaxIterationsError, ProviderError, ReasoningParseErro
 import type { LlmProvider, MemoryProvider, AgentEvent } from '@agentic-eng/provider';
 import type { Tool } from '@agentic-eng/tool';
 import { ToolRegistry } from '@agentic-eng/tool';
-import type { ChatChunk, ChatResponse, LLMReasoningResponse, Message } from '@agentic-eng/core';
+import type { CompletionChunk, Completion, LLMReasoningResponse, Message } from '@agentic-eng/core';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -30,10 +30,10 @@ function reasoningJson(overrides?: Partial<LLMReasoningResponse>): string {
  */
 function createMockProvider(overrides?: Partial<LlmProvider>): LlmProvider {
   return {
-    chat: vi.fn(async (_messages: Message[]): Promise<ChatResponse> => ({
+    chat: vi.fn(async (_messages: Message[]): Promise<Completion> => ({
       message: { role: 'assistant', content: reasoningJson() },
     })),
-    chatStream: vi.fn(async function* (_messages: Message[]): AsyncIterable<ChatChunk> {
+    chatStream: vi.fn(async function* (_messages: Message[]): AsyncIterable<CompletionChunk> {
       yield { delta: 'Hello ', done: false };
       yield { delta: 'from ', done: false };
       yield { delta: 'stream!', done: true };
@@ -103,7 +103,7 @@ describe('Agent', () => {
     it('should iterate when LLM returns action=continue, then done', async () => {
       let callCount = 0;
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => {
+        chat: vi.fn(async (): Promise<Completion> => {
           callCount++;
           if (callCount === 1) {
             return {
@@ -142,7 +142,7 @@ describe('Agent', () => {
 
     it('should throw MaxIterationsError when loop exceeds limit', async () => {
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => ({
+        chat: vi.fn(async (): Promise<Completion> => ({
           message: {
             role: 'assistant',
             content: reasoningJson({
@@ -162,7 +162,7 @@ describe('Agent', () => {
 
     it('should respect per-call maxIterations override', async () => {
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => ({
+        chat: vi.fn(async (): Promise<Completion> => ({
           message: {
             role: 'assistant',
             content: reasoningJson({ action: 'continue', content: 'Working...' }),
@@ -241,7 +241,7 @@ describe('Agent', () => {
 
     it('should throw ReasoningParseError for invalid JSON responses', async () => {
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => ({
+        chat: vi.fn(async (): Promise<Completion> => ({
           message: { role: 'assistant', content: 'Not valid JSON at all' },
         })),
       });
@@ -252,7 +252,7 @@ describe('Agent', () => {
 
     it('should throw ReasoningParseError when JSON is missing required fields', async () => {
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => ({
+        chat: vi.fn(async (): Promise<Completion> => ({
           message: { role: 'assistant', content: '{"foo": "bar"}' },
         })),
       });
@@ -265,7 +265,7 @@ describe('Agent', () => {
 
     it('should handle JSON wrapped in code fences', async () => {
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => ({
+        chat: vi.fn(async (): Promise<Completion> => ({
           message: {
             role: 'assistant',
             content: '```json\n' + reasoningJson({ content: 'Fenced response' }) + '\n```',
@@ -287,7 +287,7 @@ describe('Agent', () => {
       };
 
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => ({
+        chat: vi.fn(async (): Promise<Completion> => ({
           message: {
             role: 'assistant',
             content: reasoningJson({
@@ -315,7 +315,7 @@ describe('Agent', () => {
 
     it('should not call memory.store when no memory provider is configured', async () => {
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => ({
+        chat: vi.fn(async (): Promise<Completion> => ({
           message: {
             role: 'assistant',
             content: reasoningJson({
@@ -339,7 +339,7 @@ describe('Agent', () => {
       };
 
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => ({
+        chat: vi.fn(async (): Promise<Completion> => ({
           message: {
             role: 'assistant',
             content: JSON.stringify({
@@ -364,7 +364,7 @@ describe('Agent', () => {
     it('should yield chunks from provider.chatStream', async () => {
       const agent = new Agent(createAgentConfig());
 
-      const chunks: ChatChunk[] = [];
+      const chunks: CompletionChunk[] = [];
       for await (const chunk of agent.invokeStream('Hello!')) {
         chunks.push(chunk);
       }
@@ -398,7 +398,7 @@ describe('Agent', () => {
       });
       const agent = new Agent(createAgentConfig({ provider }));
 
-      const chunks: ChatChunk[] = [];
+      const chunks: CompletionChunk[] = [];
       await expect(async () => {
         for await (const chunk of agent.invokeStream('Hi')) {
           chunks.push(chunk);
@@ -507,7 +507,7 @@ describe('Agent', () => {
 
       let callCount = 0;
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => {
+        chat: vi.fn(async (): Promise<Completion> => {
           callCount++;
           if (callCount === 1) {
             return {
@@ -550,7 +550,7 @@ describe('Agent', () => {
 
       let callCount = 0;
       const provider = createMockProvider({
-        chat: vi.fn(async (messages: Message[]): Promise<ChatResponse> => {
+        chat: vi.fn(async (messages: Message[]): Promise<Completion> => {
           callCount++;
           if (callCount === 1) {
             // LLM requests calculator but with empty input
@@ -605,7 +605,7 @@ describe('Agent', () => {
 
       let callCount = 0;
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => {
+        chat: vi.fn(async (): Promise<Completion> => {
           callCount++;
           if (callCount === 1) {
             return {
@@ -655,7 +655,7 @@ describe('Agent', () => {
 
       let callCount = 0;
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => {
+        chat: vi.fn(async (): Promise<Completion> => {
           callCount++;
           if (callCount === 1) {
             return {
@@ -701,7 +701,7 @@ describe('Agent', () => {
 
       let callCount = 0;
       const provider = createMockProvider({
-        chat: vi.fn(async (): Promise<ChatResponse> => {
+        chat: vi.fn(async (): Promise<Completion> => {
           callCount++;
           if (callCount === 1) {
             return {
@@ -891,7 +891,7 @@ describe('Event emission', () => {
     const { observability, events } = createCollectorEmitter();
     let callCount = 0;
     const provider = createMockProvider({
-      chat: vi.fn(async (): Promise<ChatResponse> => {
+      chat: vi.fn(async (): Promise<Completion> => {
         callCount++;
         if (callCount === 1) {
           return {
@@ -935,7 +935,7 @@ describe('Event emission', () => {
 
     let callCount = 0;
     const provider = createMockProvider({
-      chat: vi.fn(async (): Promise<ChatResponse> => {
+      chat: vi.fn(async (): Promise<Completion> => {
         callCount++;
         if (callCount === 1) {
           return {
@@ -976,7 +976,7 @@ describe('Event emission', () => {
     const { observability, events } = createCollectorEmitter();
     let callCount = 0;
     const provider = createMockProvider({
-      chat: vi.fn(async (): Promise<ChatResponse> => {
+      chat: vi.fn(async (): Promise<Completion> => {
         callCount++;
         if (callCount === 1) {
           return {
@@ -1016,7 +1016,7 @@ describe('Event emission', () => {
     };
 
     const provider = createMockProvider({
-      chat: vi.fn(async (): Promise<ChatResponse> => ({
+      chat: vi.fn(async (): Promise<Completion> => ({
         message: {
           role: 'assistant',
           content: reasoningJson({
@@ -1069,7 +1069,7 @@ describe('Event emission', () => {
   it('should emit error + invoke.end events when max iterations exceeded', async () => {
     const { observability, events } = createCollectorEmitter();
     const provider = createMockProvider({
-      chat: vi.fn(async (): Promise<ChatResponse> => ({
+      chat: vi.fn(async (): Promise<Completion> => ({
         message: {
           role: 'assistant',
           content: reasoningJson({ action: 'continue', content: 'Still working...' }),

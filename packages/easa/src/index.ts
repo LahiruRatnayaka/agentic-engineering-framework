@@ -22,6 +22,7 @@ _warn(
 export {
   Agent,
   ToolRegistry,
+  AgenticError,
   EasaError,
   ProviderError,
   AgentConfigError,
@@ -45,6 +46,8 @@ export type {
   Role,
   Message,
   ChatOptions,
+  Completion,
+  CompletionChunk,
   ChatResponse,
   ChatChunk,
   TokenUsage,

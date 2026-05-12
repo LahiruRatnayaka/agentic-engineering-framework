@@ -1,17 +1,22 @@
 /**
- * Base error class for all EASA framework errors.
+ * Base error class for all framework errors.
  */
-export class EasaError extends Error {
+export class AgenticError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'EasaError';
+    this.name = 'AgenticError';
   }
 }
 
 /**
+ * @deprecated Use `AgenticError` instead. Will be removed after 31 May 2026.
+ */
+export const EasaError = AgenticError;
+
+/**
  * Thrown when an LLM provider encounters an error.
  */
-export class ProviderError extends EasaError {
+export class ProviderError extends AgenticError {
   constructor(
     message: string,
     public readonly cause?: unknown,
@@ -24,7 +29,7 @@ export class ProviderError extends EasaError {
 /**
  * Thrown when the Agent is misconfigured (e.g. missing provider).
  */
-export class AgentConfigError extends EasaError {
+export class AgentConfigError extends AgenticError {
   constructor(message: string) {
     super(message);
     this.name = 'AgentConfigError';
@@ -34,7 +39,7 @@ export class AgentConfigError extends EasaError {
 /**
  * Thrown when the agent's reasoning loop exceeds the maximum allowed iterations.
  */
-export class MaxIterationsError extends EasaError {
+export class MaxIterationsError extends AgenticError {
   constructor(
     public readonly maxIterations: number,
     public readonly iterationsCompleted: number,
@@ -50,7 +55,7 @@ export class MaxIterationsError extends EasaError {
 /**
  * Thrown when the LLM response cannot be parsed as a valid reasoning JSON.
  */
-export class ReasoningParseError extends EasaError {
+export class ReasoningParseError extends AgenticError {
   constructor(
     message: string,
     public readonly rawContent: string,
@@ -63,7 +68,7 @@ export class ReasoningParseError extends EasaError {
 /**
  * Thrown when a tool execution fails.
  */
-export class ToolExecutionError extends EasaError {
+export class ToolExecutionError extends AgenticError {
   constructor(
     public readonly toolName: string,
     message: string,

@@ -1,6 +1,6 @@
 # @agentic-eng/observability
 
-> Observability implementations for [EASA](https://github.com/easa-framework/easa) — Easy Agent System Architecture.
+> Observability implementations for the [Agentic Engineering Framework](https://github.com/easa-framework/easa).
 
 [![npm](https://img.shields.io/npm/v/@agentic-eng/observability)](https://www.npmjs.com/package/@agentic-eng/observability)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -8,9 +8,9 @@
 
 ---
 
-## Part of the EASA Framework
+## Part of the Agentic Engineering Framework
 
-EASA is a minimal, type-safe TypeScript framework for building LLM-powered agent systems. It provides building blocks for agents that can **reason**, **use tools**, **persist knowledge**, and **emit observable events** — with zero LLM lock-in.
+The Agentic Engineering Framework is a minimal, type-safe TypeScript framework for building LLM-powered agent systems. It provides building blocks for agents that can **reason**, **use tools**, **persist knowledge**, and **emit observable events** — with zero LLM lock-in.
 
 | Package | Description |
 | --- | --- |
@@ -62,16 +62,16 @@ await agent.invoke('What is 42 × 17?');
 Console output:
 
 ```
-[EASA] 14:23:05.123Z ▶ INVOKE  agent="assistant" prompt="What is 42 × 17?"
-[EASA] 14:23:05.124Z ↻ ITER    iteration=1/5
-[EASA] 14:23:05.125Z → LLM     messages=3
-[EASA] 14:23:05.830Z ← LLM     tokens=142
-[EASA] 14:23:05.831Z ⚙ TOOL    tool="calculator"
-[EASA] 14:23:05.832Z ⚙ TOOL✓   tool="calculator" success=true
-[EASA] 14:23:05.833Z ✓ ITER    iteration=1 action="tool_call"
-[EASA] 14:23:06.200Z ← LLM     tokens=89
-[EASA] 14:23:06.201Z ✓ ITER    iteration=2 action="done"
-[EASA] 14:23:06.202Z ■ INVOKE  agent="assistant" iterations=2 completed=true
+[AEF] 14:23:05.123Z INVOKE:START agent="assistant" prompt="What is 42 × 17?"
+[AEF] 14:23:05.124Z ITER:START iteration=1/5
+[AEF] 14:23:05.125Z LLM:START messages=3
+[AEF] 14:23:05.830Z LLM:END tokens=142
+[AEF] 14:23:05.831Z TOOL:START tool="calculator"
+[AEF] 14:23:05.832Z TOOL:END tool="calculator" success=true
+[AEF] 14:23:05.833Z ITER:END iteration=1 action="tool_call"
+[AEF] 14:23:06.200Z LLM:END tokens=89
+[AEF] 14:23:06.201Z ITER:END iteration=2 action="done"
+[AEF] 14:23:06.202Z INVOKE:END agent="assistant" iterations=2 completed=true
 ```
 
 You can customize the prefix:

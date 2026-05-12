@@ -38,9 +38,9 @@ export interface TokenUsage {
 }
 
 /**
- * Complete response from an LLM chat call.
+ * Complete response from an LLM call.
  */
-export interface ChatResponse {
+export interface Completion {
   message: Message;
   usage?: TokenUsage;
 }
@@ -48,7 +48,7 @@ export interface ChatResponse {
 /**
  * A single chunk from a streaming LLM response.
  */
-export interface ChatChunk {
+export interface CompletionChunk {
   /** The incremental text content of this chunk. */
   delta: string;
 
@@ -58,6 +58,16 @@ export interface ChatChunk {
   /** Usage stats, typically only present on the final chunk. */
   usage?: TokenUsage;
 }
+
+/**
+ * @deprecated Use `Completion` instead. Will be removed after 31 May 2026.
+ */
+export type ChatResponse = Completion;
+
+/**
+ * @deprecated Use `CompletionChunk` instead. Will be removed after 31 May 2026.
+ */
+export type ChatChunk = CompletionChunk;
 
 // ---------------------------------------------------------------------------
 // Reasoning Loop Types
@@ -179,7 +189,7 @@ export interface IterationResult {
   response: LLMReasoningResponse;
 
   /** Raw LLM response (for debugging / inspection). */
-  rawResponse: ChatResponse;
+  rawResponse: Completion;
 }
 
 /**

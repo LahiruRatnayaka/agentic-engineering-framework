@@ -10,7 +10,11 @@ export type {
   Role,
   Message,
   ChatOptions,
+  Completion,
+  CompletionChunk,
+  /** @deprecated Use `Completion` instead. Will be removed after 31 May 2026. */
   ChatResponse,
+  /** @deprecated Use `CompletionChunk` instead. Will be removed after 31 May 2026. */
   ChatChunk,
   TokenUsage,
   ReasoningAction,
@@ -27,6 +31,8 @@ export type {
 
 // Errors
 export {
+  AgenticError,
+  /** @deprecated Use `AgenticError` instead. Will be removed after 31 May 2026. */
   EasaError,
   ProviderError,
   AgentConfigError,

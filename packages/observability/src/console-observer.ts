@@ -19,7 +19,7 @@ export class ConsoleObserver implements ObservabilityProvider {
   private readonly prefix: string;
 
   constructor(options?: { prefix?: string }) {
-    this.prefix = options?.prefix ?? '[EASA]';
+    this.prefix = options?.prefix ?? '[AEF]';
   }
 
   emit(event: AgentEvent): void {
@@ -31,23 +31,23 @@ export class ConsoleObserver implements ObservabilityProvider {
   }
 
   private formatType(type: EventType): string {
-    const icons: Record<string, string> = {
-      'agent.invoke.start': '▶ INVOKE',
-      'agent.invoke.end': '■ INVOKE',
-      'agent.invoke_stream.start': '▶ STREAM',
-      'agent.invoke_stream.end': '■ STREAM',
-      'agent.iteration.start': '↻ ITER',
-      'agent.iteration.end': '✓ ITER',
-      'llm.call.start': '→ LLM',
-      'llm.call.end': '← LLM',
-      'tool.call.start': '⚙ TOOL',
-      'tool.call.end': '⚙ TOOL✓',
-      'tool.schema.inject': '📋 SCHEMA',
-      'tool.not_found': '⚠ TOOL?',
-      'memory.store': '💾 MEMORY',
-      'agent.error': '✗ ERROR',
+    const tags: Record<string, string> = {
+      'agent.invoke.start': 'INVOKE:START',
+      'agent.invoke.end': 'INVOKE:END',
+      'agent.invoke_stream.start': 'STREAM:START',
+      'agent.invoke_stream.end': 'STREAM:END',
+      'agent.iteration.start': 'ITER:START',
+      'agent.iteration.end': 'ITER:END',
+      'llm.call.start': 'LLM:START',
+      'llm.call.end': 'LLM:END',
+      'tool.call.start': 'TOOL:START',
+      'tool.call.end': 'TOOL:END',
+      'tool.schema.inject': 'TOOL:SCHEMA',
+      'tool.not_found': 'TOOL:NOT_FOUND',
+      'memory.store': 'MEMORY:STORE',
+      'agent.error': 'ERROR',
     };
-    return icons[type] ?? type;
+    return tags[type] ?? type;
   }
 
   private formatData(event: AgentEvent): string {

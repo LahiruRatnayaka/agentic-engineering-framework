@@ -1,14 +1,15 @@
 {
   "name": "@agentic-eng/agent",
-  "version": "0.2.3",
-  "description": "Core agent class and reasoning loop for the EASA framework.",
+  "version": "0.2.4",
+  "description": "Core agent class and orchestrator for the EASA framework.",
   "keywords": [
     "agent",
     "ai",
     "framework",
     "typescript",
     "llm",
-    "easa"
+    "easa",
+    "orchestrator"
   ],
   "license": "MIT",
   "author": "Lahiru Ratnayaka",
@@ -35,6 +36,7 @@
   },
   "files": [
     "dist",
+    "assets",
     "README.md",
     "LICENSE"
   ],

@@ -1,6 +1,6 @@
 # @agentic-eng/provider
 
-> Interface-only contracts for LLM, Memory, and Observability providers in [EASA](https://github.com/easa-framework/easa) — Easy Agent System Architecture.
+> Interface-only contracts for LLM, Memory, and Observability providers in the [Agentic Engineering Framework](https://github.com/easa-framework/easa).
 
 [![npm](https://img.shields.io/npm/v/@agentic-eng/provider)](https://www.npmjs.com/package/@agentic-eng/provider)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -8,9 +8,9 @@
 
 ---
 
-## Part of the EASA Framework
+## Part of the Agentic Engineering Framework
 
-EASA is a minimal, type-safe TypeScript framework for building LLM-powered agent systems. It provides building blocks for agents that can **reason**, **use tools**, **persist knowledge**, and **emit observable events** — with zero LLM lock-in.
+The Agentic Engineering Framework is a minimal, type-safe TypeScript framework for building LLM-powered agent systems. It provides building blocks for agents that can **reason**, **use tools**, **persist knowledge**, and **emit observable events** — with zero LLM lock-in.
 
 | Package | Description |
 | --- | --- |
@@ -27,7 +27,7 @@ EASA is a minimal, type-safe TypeScript framework for building LLM-powered agent
 
 ## What This Package Does
 
-`@agentic-eng/provider` defines the **interface contracts** that connect the EASA agent to external systems. It contains **no concrete implementations** — only TypeScript interfaces.
+`@agentic-eng/provider` defines the **interface contracts** that connect the agent to external systems. It contains **no concrete implementations** — only TypeScript interfaces.
 
 There are three provider interfaces:
 
@@ -57,19 +57,19 @@ npm install @agentic-eng/agent    # includes provider interfaces automatically
 
 ## `LlmProvider`
 
-The core interface — connect any LLM backend to EASA. You **must** implement this to use the agent.
+The core interface — connect any LLM backend to the framework. You **must** implement this to use the agent.
 
 ```typescript
-import type { LlmProvider, Message, ChatOptions, ChatResponse, ChatChunk } from '@agentic-eng/provider';
+import type { LlmProvider, Message, ChatOptions, Completion, CompletionChunk } from '@agentic-eng/provider';
 
 const myProvider: LlmProvider = {
-  async chat(messages: Message[], options?: ChatOptions): Promise<ChatResponse> {
+  async chat(messages: Message[], options?: ChatOptions): Promise<Completion> {
     // Call OpenAI, Anthropic, local model, etc.
     const response = await callYourLLM(messages);
     return { message: { role: 'assistant', content: response.text } };
   },
 
-  async *chatStream(messages: Message[], options?: ChatOptions): AsyncIterable<ChatChunk> {
+  async *chatStream(messages: Message[], options?: ChatOptions): AsyncIterable<CompletionChunk> {
     for await (const chunk of streamYourLLM(messages)) {
       yield { delta: chunk.text, done: chunk.finished };
     }
@@ -104,7 +104,7 @@ class PostgresMemory implements MemoryProvider {
 }
 ```
 
-EASA ships a built-in implementation in [`@agentic-eng/memory`](https://www.npmjs.com/package/@agentic-eng/memory) — `FlatFileMemory` persists knowledge as KNL DATA blocks in flat files.
+The framework ships a built-in implementation in [`@agentic-eng/memory`](https://www.npmjs.com/package/@agentic-eng/memory) — `FlatFileMemory` persists knowledge as KNL DATA blocks in flat files.
 
 ---
 
@@ -122,7 +122,7 @@ class OtelObserver implements ObservabilityProvider {
 }
 ```
 
-EASA ships built-in implementations in [`@agentic-eng/observability`](https://www.npmjs.com/package/@agentic-eng/observability):
+The framework ships built-in implementations in [`@agentic-eng/observability`](https://www.npmjs.com/package/@agentic-eng/observability):
 - **`ConsoleObserver`** — formatted console logging for development
 - **`NoopObserver`** — silently discards events (used internally as default)
 

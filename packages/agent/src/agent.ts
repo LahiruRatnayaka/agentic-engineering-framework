@@ -5,9 +5,9 @@ import {
   ReasoningParseError,
 } from '@agentic-eng/core';
 import type {
-  ChatChunk,
+  Completion,
+  CompletionChunk,
   ChatOptions,
-  ChatResponse,
   InvokeOptions,
   IterationResult,
   LLMReasoningResponse,
@@ -202,7 +202,7 @@ export class Agent {
 
       this.emit('llm.call.start', { messageCount: messagesToSend.length });
 
-      let rawResponse: ChatResponse;
+      let rawResponse: Completion;
       try {
         rawResponse = await this.provider.chat(messagesToSend, mergedOptions);
       } catch (error) {
@@ -309,7 +309,7 @@ export class Agent {
    * The assistant's full message is appended to conversation history
    * once the stream completes.
    */
-  async *invokeStream(prompt: string, options?: ChatOptions): AsyncIterable<ChatChunk> {
+  async *invokeStream(prompt: string, options?: ChatOptions): AsyncIterable<CompletionChunk> {
     this.emit('agent.invoke_stream.start', { prompt });
     this.messages.push({ role: 'user', content: prompt });
 

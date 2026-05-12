@@ -34,7 +34,7 @@ Update your imports:
 
 ## Why?
 
-The `@agentic-eng/easa` umbrella package was a thin re-export layer over `@agentic-eng/agent`. Going forward, `@agentic-eng/agent` is the single, primary package for the EASA framework. Consolidating to one package simplifies installation, reduces confusion, and streamlines releases.
+The `@agentic-eng/easa` umbrella package was a thin re-export layer over `@agentic-eng/agent`. Going forward, `@agentic-eng/agent` is the single, primary package for the Agentic Engineering Framework. Consolidating to one package simplifies installation, reduces confusion, and streamlines releases.
 
 ## Timeline
 

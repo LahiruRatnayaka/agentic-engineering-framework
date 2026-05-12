@@ -1,6 +1,6 @@
 {
   "name": "@agentic-eng/tool",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Tool interface and registry for the EASA framework.",
   "keywords": [
     "agent",
